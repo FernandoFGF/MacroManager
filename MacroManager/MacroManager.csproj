@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <AssemblyName>MacroManager</AssemblyName>
+    <Version>1.0.0.0</Version>
+    <Authors>Tu Nombre</Authors>
+    <Company>Tu Compañía</Company>
+    <Product>Macro Manager para Videojuegos</Product>
+    <Description>Aplicación para crear y ejecutar macros personalizadas en videojuegos</Description>
+    <Copyright>Copyright © 2024</Copyright>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="InputSimulatorCore" Version="1.0.5" />
+  </ItemGroup>
+
+</Project>

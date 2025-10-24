@@ -1,276 +1,220 @@
-# 📖 INSTRUCCIONES COMPLETAS - MACRO MANAGER
+# 📖 COMPLETE INSTRUCTIONS - MACRO MANAGER
 
-## 🎯 Opción 1: COMPILAR SOLO EL EJECUTABLE (Rápido y Fácil)
+## 🎯 Option 1: BUILD EXECUTABLE ONLY (Quick and Easy)
 
-Si solo quieres probar la aplicación sin crear un instalador:
+If you just want to test the application without creating an installer:
 
-### Paso 1: Ejecutar el script de compilación
+### Step 1: Run the build script
 
 ```powershell
 .\build-exe.ps1
 ```
 
-### Paso 2: Localizar el ejecutable
+### Step 2: Locate the executable
 
-El archivo estará en:
+The file will be at:
 ```
 MacroManager\bin\Release\net8.0-windows\win-x64\publish\MacroManager.exe
 ```
 
-### Paso 3: Ejecutar
+### Step 3: Run it
 
-Simplemente haz doble clic en `MacroManager.exe`
+Simply double-click `MacroManager.exe`
 
-**⚠️ IMPORTANTE**: Debes distribuir TODA la carpeta `publish` con todas las DLLs, no solo el .exe
+**⚠️ IMPORTANT**: You must distribute the ENTIRE `publish` folder with all DLLs, not just the .exe
 
 ---
 
-## 🎯 Opción 2: CREAR INSTALADOR PROFESIONAL (Recomendado para Distribución)
+## 🎯 Option 2: CREATE PROFESSIONAL INSTALLER (Recommended for Distribution)
 
-Si quieres crear un instalador .exe profesional para compartir:
+If you want to create a professional .exe installer to share:
 
-### Requisitos Previos
+### Prerequisites
 
-1. **Descargar e instalar Inno Setup**
-   - Visita: https://jrsoftware.org/isdl.php
-   - Descarga la versión más reciente (normalmente "Inno Setup 6")
-   - Instala con las opciones por defecto
+1. **Download and install Inno Setup**
+   - Visit: https://jrsoftware.org/isdl.php
+   - Download the latest version (usually "Inno Setup 6")
+   - Install with default options
 
-### Método A: Usar el Script Automático (RECOMENDADO)
+### Method A: Use the Automatic Script (RECOMMENDED)
 
 ```powershell
 .\build-installer.ps1
 ```
 
-Este script:
-1. ✓ Limpia compilaciones anteriores
-2. ✓ Restaura paquetes NuGet
-3. ✓ Compila el proyecto
-4. ✓ Publica la aplicación
-5. ✓ Crea el instalador automáticamente
-6. ✓ Abre la carpeta Output con el instalador final
+This script:
+1. ✓ Cleans previous builds
+2. ✓ Restores NuGet packages
+3. ✓ Compiles the project
+4. ✓ Publishes the application
+5. ✓ Creates the installer automatically
 
-### Método B: Paso a Paso Manual
+**Result**: `Output\MacroManager_v1.0.0_Setup.exe`
 
-#### 1. Compilar la aplicación
+---
+
+## 🎯 Option 3: MANUAL INSTALLATION STEPS
+
+If you prefer more control, here are the steps:
+
+### Step 1: Restore NuGet Packages
 
 ```powershell
-# Limpiar
-dotnet clean -c Release
-
-# Restaurar paquetes
 dotnet restore
+```
 
-# Compilar
+### Step 2: Build in Release Mode
+
+```powershell
 dotnet build -c Release
+```
 
-# Publicar
+### Step 3: Publish as Self-Contained
+
+```powershell
 dotnet publish -c Release -r win-x64 --self-contained true
 ```
 
-#### 2. Abrir Inno Setup
+### Step 4: Create Installer with Inno Setup
 
-- Abre el programa "Inno Setup Compiler"
-- Ve a: File → Open
-- Selecciona el archivo `installer.iss` de tu proyecto
+- Open `installer.iss` in Inno Setup
+- Click "Compile"
+- The installer will be created in the `Output` folder
 
-#### 3. Compilar el Instalador
+---
 
-- Presiona F9 o ve a: Build → Compile
-- Espera a que termine (unos segundos)
+## 🚀 QUICK START
 
-#### 4. Localizar el Instalador
+### For Immediate Testing
 
-El instalador final estará en:
+**Option A: Use the interactive menu**
+```batch
+COMANDOS-RAPIDOS.bat
 ```
-Output\MacroManager_v1.0.0_Setup.exe
+
+**Option B: Build executable**
+```powershell
+.\build-exe.ps1
+```
+
+**Option C: Build + Installer**
+```powershell
+.\build-installer.ps1
 ```
 
 ---
 
-## 📦 Distribución de Archivos
+## 📦 FILE DISTRIBUTION
 
-### Si compilaste solo el ejecutable:
-- Comprime TODA la carpeta `publish` en un ZIP
-- Incluye un README explicando que deben extraer todo el ZIP
+### Using Portable Executable:
 
-### Si creaste el instalador:
-- Solo necesitas distribuir el archivo `MacroManager_v1.0.0_Setup.exe`
-- El instalador se encargará de copiar todos los archivos necesarios
+1. Go to: `MacroManager\bin\Release\net8.0-windows\win-x64\publish\`
+2. Compress the ENTIRE folder to ZIP
+3. Share the ZIP with other users
+4. Users must extract the ENTIRE ZIP before running
 
----
+### Using Installer:
 
-## 🚀 USO DE LA APLICACIÓN
-
-### Grabar una Macro
-
-1. Abre Macro Manager
-2. Clic en **⏺ Grabar**
-3. Realiza las acciones (teclado/mouse) que quieres grabar
-4. Clic en **⏹ Detener**
-5. Escribe un nombre para tu macro
-6. Clic en **💾 Guardar**
-
-### Reproducir una Macro
-
-1. Selecciona una macro de la lista
-2. Clic en **▶ Reproducir**
-3. Elige cuántas veces repetir:
-   - `1` = Una vez
-   - `0` = Infinito (hasta presionar Parar)
-   - Cualquier número = Esa cantidad de veces
-
-### Gestionar Macros
-
-- **📤 Exportar**: Guarda una macro en un archivo `.macro` para compartir
-- **📥 Importar**: Carga macros desde archivos externos
-- **🗑 Eliminar**: Borra macros que ya no necesites
+1. Run `.\build-installer.ps1`
+2. Locate: `Output\MacroManager_v1.0.0_Setup.exe`
+3. Share only that .exe file
+4. Users simply double-click and install
 
 ---
 
-## ⚙️ PERSONALIZACIÓN
+## 🛠️ TROUBLESHOOTING
 
-### Cambiar el Icono
-
-1. Reemplaza el archivo `MacroManager\app.ico` con tu icono
-2. Vuelve a compilar
-
-### Cambiar Información de la Aplicación
-
-Edita `MacroManager\MacroManager.csproj`:
-
-```xml
-<Version>1.0.0.0</Version>
-<Authors>Tu Nombre</Authors>
-<Company>Tu Compañía</Company>
-<Product>Tu Producto</Product>
-<Description>Tu Descripción</Description>
-```
-
-### Cambiar Información del Instalador
-
-Edita `installer.iss` en las primeras líneas:
-
-```pascal
-#define MyAppName "Tu Nombre de App"
-#define MyAppVersion "1.0.0"
-#define MyAppPublisher "Tu Nombre"
-#define MyAppURL "https://tu-sitio.com"
-```
-
----
-
-## 🔧 SOLUCIÓN DE PROBLEMAS
-
-### Error: "dotnet no se reconoce como comando"
-
-**Solución**: Instala .NET SDK desde https://dotnet.microsoft.com/download
-
-### Error: "No se puede encontrar app.ico"
-
-**Solución**: El proyecto ya incluye un icono. Si falta, comenta la línea en `.csproj`:
-```xml
-<!-- <ApplicationIcon>app.ico</ApplicationIcon> -->
-```
-
-### Error: "Inno Setup no está instalado"
-
-**Solución**: 
-1. Descarga desde https://jrsoftware.org/isdl.php
-2. Instala con opciones por defecto
-3. Ejecuta nuevamente el script
-
-### El ejecutable no inicia
-
-**Posibles causas**:
-- Falta el runtime .NET → Usa `--self-contained true` al publicar
-- Antivirus bloqueando → Agrega excepción
-- Faltan DLLs → Distribuye toda la carpeta publish
-
-### "El juego no detecta las macros"
-
-**Posibles causas**:
-- Ejecuta como Administrador (clic derecho → Ejecutar como administrador)
-- Algunos juegos con anti-cheat bloquean macros
-- Verifica que el juego esté en primer plano al reproducir
-
----
-
-## 📊 ESTRUCTURA DEL PROYECTO
-
-```
-PROJECT/
-├── MacroManager/              # Código fuente
-│   ├── Models/               # Modelos de datos
-│   ├── Services/             # Lógica de negocio
-│   ├── Program.cs            # Punto de entrada
-│   ├── MainForm.cs           # Formulario principal
-│   └── MainForm.Designer.cs  # Diseño del formulario
-├── installer.iss             # Script de Inno Setup
-├── build-installer.ps1       # Script completo con instalador
-├── build-exe.ps1             # Script simple solo ejecutable
-└── INSTRUCCIONES.md          # Este archivo
-```
-
----
-
-## 📝 COMANDOS ÚTILES
+### "dotnet not recognized"
 
 ```powershell
-# Ver versión de .NET
-dotnet --version
+# Install .NET SDK:
+# https://dotnet.microsoft.com/download
+```
 
-# Limpiar proyecto
-dotnet clean
+### "Error opening app.ico"
 
-# Restaurar paquetes
-dotnet restore
+```powershell
+# It's already included, but if it fails:
+# Comment the line in MacroManager.csproj
+```
 
-# Compilar en Debug
-dotnet build
+### "Inno Setup not found"
 
-# Compilar en Release
-dotnet build -c Release
+```powershell
+# Download and install:
+# https://jrsoftware.org/isdl.php
+```
 
-# Publicar para Windows 64-bit
-dotnet publish -c Release -r win-x64 --self-contained true
+### "Executable won't run"
 
-# Ejecutar sin compilar
-dotnet run
-
-# Ejecutar con hot reload
-dotnet watch run
+```powershell
+# 1. Run as administrator
+# 2. Verify you distributed the ENTIRE publish folder
+# 3. Temporarily disable antivirus
 ```
 
 ---
 
-## ⚠️ ADVERTENCIAS LEGALES
+## 📋 PROJECT STRUCTURE
 
-- Esta aplicación requiere permisos de administrador para funcionar correctamente
-- Algunos juegos con anti-cheat pueden detectar y banear el uso de macros
-- Usa responsablemente y respeta los términos de servicio de cada juego
-- No usar en juegos competitivos o ranked
-- El desarrollador no se responsabiliza por sanciones en juegos
+```
+MacroManager-master/
+├── MacroManager/                    # Main application code
+│   ├── Program.cs                   # Entry point
+│   ├── MainForm.cs                  # Main UI form
+│   ├── MacroManager.csproj          # Project configuration
+│   ├── Models/
+│   │   └── MacroConfig.cs           # Macro data model
+│   ├── Services/
+│   │   ├── MacroRecorder.cs         # Recording service
+│   │   ├── MacroPlayer.cs           # Playback service
+│   │   └── SettingsManager.cs       # Persistence service
+│   ├── bin/                         # Compiled output
+│   │   └── Release/net8.0-windows/win-x64/publish/
+│   │       └── MacroManager.exe     # Final executable
+│   └── obj/                         # Build artifacts
+│
+├── Output/                          # Installer output
+│   └── MacroManager_v1.0.0_Setup.exe # Installer file
+│
+├── build-exe.ps1                    # Build executable script
+├── build-installer.ps1              # Build installer script
+├── installer.iss                    # Inno Setup configuration
+├── README.md                        # User documentation
+├── INSTRUCCIONES.md                 # Instructions (this file)
+└── RESUMEN-PROYECTO.md              # Project summary
+```
 
 ---
 
-## 🆘 SOPORTE
+## ✨ SUMMARY
 
-Si encuentras problemas:
-
-1. Verifica que seguiste todos los pasos correctamente
-2. Revisa la sección de Solución de Problemas
-3. Comprueba que tienes todas las herramientas instaladas
-4. Ejecuta como administrador si hay problemas de permisos
-
----
-
-## 📄 LICENCIA
-
-Este proyecto es de código abierto y educativo. Úsalo libremente pero bajo tu propia responsabilidad.
+| Method | When to Use | Advantages | Disadvantages |
+|--------|-------------|-----------|---------------|
+| **Direct Execution** | Development/testing | Fast, no installation | Only for you |
+| **Portable Executable** | Share with friends | Easy to distribute | Must extract ZIP |
+| **Professional Installer** | Public distribution | Professional, easy install | Requires Inno Setup |
 
 ---
 
-**Versión del documento**: 1.0  
-**Última actualización**: 2024  
-**Compatibilidad**: Windows 10/11, .NET 8.0
+## ⚠️ IMPORTANT NOTES
+
+### Permissions
+- Requires **Administrator privileges** for global input capture
+- Windows 11 may show SmartScreen (normal, click "More info" → "Run anyway")
+
+### Anti-Cheat
+- Some games with anti-cheat can **detect and ban** macro usage
+- **DO NOT use in competitive games** (CS:GO, Valorant, Fortnite ranked, etc.)
+- Use only in casual or single-player games
+
+### Compatibility
+- ✅ Windows 10/11
+- ✅ x64 Architecture
+- ✅ .NET 8.0
+
+---
+
+**Your MacroManager is ready to use! 🎮🚀**
+
+*Created with ❤️ for the gaming community*

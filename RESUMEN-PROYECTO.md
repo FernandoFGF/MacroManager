@@ -1,296 +1,296 @@
-# 🎮 MACRO MANAGER - RESUMEN DEL PROYECTO
+# 🎮 MACRO MANAGER - PROJECT SUMMARY
 
-## ✅ ESTADO ACTUAL
+## ✅ CURRENT STATUS
 
-Tu proyecto **YA ESTÁ COMPILADO** exitosamente. Ahora solo necesitas decidir cómo distribuirlo.
+Your project **IS ALREADY COMPILED** successfully. Now you just need to decide how to distribute it.
 
-**Ubicación del ejecutable:**
+**Executable Location:**
 ```
 MacroManager\bin\Release\net8.0-windows\win-x64\publish\MacroManager.exe
 ```
 
 ---
 
-## 📁 ESTRUCTURA DE ARCHIVOS CREADOS
+## 📁 STRUCTURE OF CREATED FILES
 
-### 🔧 Archivos de Código (Ya listos)
+### 🔧 Code Files (Ready)
 ```
 MacroManager/
-├── Program.cs              ✓ Punto de entrada
-├── MainForm.cs             ✓ Formulario principal
-├── MainForm.Designer.cs    ✓ Diseño del formulario
+├── Program.cs              ✓ Entry point
+├── MainForm.cs             ✓ Main form
+├── MainForm.Designer.cs    ✓ Form design
 ├── Models/
-│   └── MacroConfig.cs      ✓ Modelo de datos de macros
+│   └── MacroConfig.cs      ✓ Macro data model
 ├── Services/
-│   ├── MacroRecorder.cs    ✓ Grabación de macros
-│   ├── MacroPlayer.cs      ✓ Reproducción de macros
-│   └── SettingsManager.cs  ✓ Guardado/carga de macros
-└── MacroManager.csproj     ✓ Configuración del proyecto
+│   ├── MacroRecorder.cs    ✓ Macro recording
+│   ├── MacroPlayer.cs      ✓ Macro playback
+│   └── SettingsManager.cs  ✓ Save/load macros
+└── MacroManager.csproj     ✓ Project configuration
 ```
 
-### 🛠️ Herramientas de Compilación (Nuevos)
+### 🛠️ Build Tools (New)
 ```
-📄 build-exe.ps1              → Compila solo el ejecutable
-📄 build-installer.ps1        → Compila + crea instalador
-📄 COMANDOS-RAPIDOS.bat       → Menú interactivo
-📄 installer.iss              → Script de Inno Setup
+📄 build-exe.ps1              → Builds executable only
+📄 build-installer.ps1        → Builds + creates installer
+📄 COMANDOS-RAPIDOS.bat       → Interactive menu
+📄 installer.iss              → Inno Setup script
 ```
 
-### 📚 Documentación (Nuevos)
+### 📚 Documentation (New)
 ```
-📖 EMPEZAR-AQUI.txt           → Guía visual rápida
-📖 INSTRUCCIONES.md           → Guía completa detallada
-📖 RESUMEN-PROYECTO.md        → Este archivo
-📖 MacroManager\README.md     → Documentación de usuario
+📖 EMPEZAR-AQUI.txt           → Quick visual guide
+📖 INSTRUCCIONES.md           → Complete detailed guide
+📖 RESUMEN-PROYECTO.md        → This file
+📖 MacroManager\README.md     → User documentation
 ```
 
 ---
 
-## 🚀 3 FORMAS DE USAR TU APLICACIÓN
+## 🚀 3 WAYS TO USE YOUR APPLICATION
 
-### 1️⃣ EJECUTAR DIRECTAMENTE (Para probar)
+### 1️⃣ RUN DIRECTLY (For testing)
 
 ```powershell
-# Método A: Ejecutar desde compilación existente
+# Method A: Run from existing build
 cd MacroManager\bin\Release\net8.0-windows\win-x64\publish
 .\MacroManager.exe
 
-# Método B: Ejecutar en modo desarrollo
+# Method B: Run in development mode
 dotnet run --project MacroManager
 ```
 
-### 2️⃣ CREAR EJECUTABLE PORTABLE (Para compartir en ZIP)
+### 2️⃣ CREATE PORTABLE EXECUTABLE (For sharing as ZIP)
 
 ```powershell
-# Ejecuta el script
+# Run the script
 .\build-exe.ps1
 
-# O manualmente:
+# Or manually:
 dotnet publish -c Release -r win-x64 --self-contained true
 
-# Resultado: Carpeta publish/ con todos los archivos
-# Comprime toda la carpeta en un ZIP para distribuir
+# Result: publish/ folder with all files
+# Compress entire folder into ZIP for distribution
 ```
 
-### 3️⃣ CREAR INSTALADOR PROFESIONAL (Recomendado)
+### 3️⃣ CREATE PROFESSIONAL INSTALLER (Recommended)
 
 ```powershell
-# Paso 1: Instalar Inno Setup (una sola vez)
+# Step 1: Install Inno Setup (one time only)
 # https://jrsoftware.org/isdl.php
 
-# Paso 2: Ejecutar script
+# Step 2: Run script
 .\build-installer.ps1
 
-# Resultado: Output\MacroManager_v1.0.0_Setup.exe
+# Result: Output\MacroManager_v1.0.0_Setup.exe
 ```
 
 ---
 
-## 🎯 ¿QUÉ MÉTODO ELEGIR?
+## 🎯 WHICH METHOD TO CHOOSE?
 
-| Método | Cuándo Usarlo | Ventajas | Desventajas |
-|--------|---------------|----------|-------------|
-| **Ejecutar directamente** | Desarrollo/pruebas | Rápido, sin instalación | Solo para ti |
-| **Ejecutable portable** | Compartir con amigos | Fácil de distribuir | Requiere extraer ZIP |
-| **Instalador profesional** | Distribución pública | Profesional, fácil de instalar | Requiere Inno Setup |
+| Method | When to Use | Advantages | Disadvantages |
+|--------|-------------|-----------|---------------|
+| **Run Directly** | Development/testing | Fast, no installation | Only for you |
+| **Portable Executable** | Share with friends | Easy to distribute | Requires extracting ZIP |
+| **Professional Installer** | Public distribution | Professional, easy install | Requires Inno Setup |
 
 ---
 
-## 💡 GUÍA RÁPIDA DE USO
+## 💡 QUICK USAGE GUIDE
 
-### Para ejecutar AHORA MISMO:
+### To run RIGHT NOW:
 
-**Opción A: Usar el menú interactivo**
+**Option A: Use interactive menu**
 ```batch
 COMANDOS-RAPIDOS.bat
 ```
 
-**Opción B: Compilar ejecutable**
+**Option B: Build executable**
 ```powershell
 .\build-exe.ps1
 ```
 
-**Opción C: Compilar + Instalador**
+**Option C: Build + Installer**
 ```powershell
 .\build-installer.ps1
 ```
 
 ---
 
-## 📦 DISTRIBUCIÓN DE ARCHIVOS
+## 📦 FILE DISTRIBUTION
 
-### Si usas el ejecutable portable:
-1. Ve a: `MacroManager\bin\Release\net8.0-windows\win-x64\publish\`
-2. Comprime TODA la carpeta en un ZIP
-3. Comparte el ZIP con otros usuarios
-4. Los usuarios deben extraer TODO el ZIP antes de ejecutar
+### If using portable executable:
+1. Go to: `MacroManager\bin\Release\net8.0-windows\win-x64\publish\`
+2. Compress ENTIRE folder to ZIP
+3. Share ZIP with other users
+4. Users must extract ENTIRE ZIP before running
 
-### Si usas el instalador:
-1. Ejecuta `.\build-installer.ps1`
-2. Localiza: `Output\MacroManager_v1.0.0_Setup.exe`
-3. Comparte solo ese archivo .exe
-4. Los usuarios solo hacen doble clic e instalan
-
----
-
-## 🎮 CÓMO USAR MACRO MANAGER
-
-### Crear una macro:
-1. Abre la aplicación
-2. Clic en **⏺ Grabar**
-3. Realiza las acciones en tu juego
-4. Clic en **⏹ Detener**
-5. Nombra tu macro
-6. Clic en **💾 Guardar**
-
-### Usar una macro:
-1. Selecciona la macro de la lista
-2. Clic en **▶ Reproducir**
-3. Elige repeticiones (1, 5, 10, 0=infinito)
-4. La macro se ejecuta automáticamente
-
-### Compartir macros:
-1. Selecciona la macro
-2. Clic en **📤 Exportar**
-3. Guarda el archivo .macro
-4. Comparte el archivo
-5. Otros pueden usar **📥 Importar**
+### If using installer:
+1. Run `.\build-installer.ps1`
+2. Locate: `Output\MacroManager_v1.0.0_Setup.exe`
+3. Share only that .exe file
+4. Users simply double-click and install
 
 ---
 
-## 🔧 CARACTERÍSTICAS TÉCNICAS
+## 🎮 HOW TO USE MACRO MANAGER
 
-### Tecnologías usadas:
+### Create a macro:
+1. Open the application
+2. Click **⏺ Record**
+3. Perform actions in your game
+4. Click **⏹ Stop**
+5. Name your macro
+6. Click **💾 Save**
+
+### Use a macro:
+1. Select the macro from the list
+2. Click **▶ Play**
+3. Choose repetitions (1, 5, 10, 0=infinite)
+4. The macro executes automatically
+
+### Share macros:
+1. Select the macro
+2. Click **📤 Export**
+3. Save the .macro file
+4. Share the file
+5. Others can use **📥 Import**
+
+---
+
+## 🔧 TECHNICAL FEATURES
+
+### Technologies used:
 - ✅ .NET 8.0 Windows Forms
-- ✅ C# con POO (Programación Orientada a Objetos)
-- ✅ Windows API (Hooks globales)
-- ✅ JSON para persistencia
-- ✅ Arquitectura de 3 capas (Models, Services, UI)
+- ✅ C# with OOP (Object-Oriented Programming)
+- ✅ Windows API (Global hooks)
+- ✅ JSON for persistence
+- ✅ 3-layer architecture (Models, Services, UI)
 
-### Funcionalidades:
-- ✅ Captura de eventos de teclado
-- ✅ Captura de eventos de mouse (clicks)
-- ✅ Reproducción con delays precisos
-- ✅ Guardado automático en AppData
-- ✅ Exportación/Importación de macros
-- ✅ Repetición configurable
-- ✅ Interfaz intuitiva con botones de colores
+### Functionality:
+- ✅ Keyboard event capture
+- ✅ Mouse event capture (clicks)
+- ✅ Playback with precise delays
+- ✅ Automatic save to AppData
+- ✅ Macro export/import
+- ✅ Configurable repetition
+- ✅ Intuitive interface with color buttons
 
 ---
 
-## ⚠️ NOTAS IMPORTANTES
+## ⚠️ IMPORTANT NOTES
 
-### Permisos:
-- Requiere ejecutar como **Administrador** para capturar eventos globales
-- En Windows 11, puede aparecer SmartScreen (es normal, clic en "Más información" → "Ejecutar")
+### Permissions:
+- Requires **Administrator** to capture global events
+- On Windows 11, SmartScreen may appear (normal, click "More info" → "Run anyway")
 
 ### Anti-cheat:
-- Algunos juegos con anti-cheat pueden **detectar y banear** el uso de macros
-- NO usar en juegos competitivos (CS:GO, Valorant, Fortnite ranked, etc.)
-- Usar solo en juegos casuales o single-player
+- Some games with anti-cheat can **detect and ban** macro usage
+- **DO NOT use in competitive games** (CS:GO, Valorant, Fortnite ranked, etc.)
+- Use only in casual or single-player games
 
-### Compatibilidad:
+### Compatibility:
 - ✅ Windows 10/11
-- ✅ Arquitectura x64
-- ✅ .NET 8.0 (incluido en instalador)
+- ✅ x64 Architecture
+- ✅ .NET 8.0 (included in installer)
 
 ---
 
-## 🆘 SOLUCIÓN DE PROBLEMAS COMUNES
+## 🆘 COMMON TROUBLESHOOTING
 
-### "No se reconoce dotnet"
+### "dotnet not recognized"
 ```powershell
-# Instala .NET SDK:
+# Install .NET SDK:
 # https://dotnet.microsoft.com/download
 ```
 
-### "Error al abrir app.ico"
+### "Error opening app.ico"
 ```powershell
-# Ya está incluido, pero si falla:
-# Comenta la línea en MacroManager.csproj
+# Already included, but if it fails:
+# Comment the line in MacroManager.csproj
 ```
 
-### "Inno Setup no encontrado"
+### "Inno Setup not found"
 ```powershell
-# Descarga e instala:
+# Download and install:
 # https://jrsoftware.org/isdl.php
 ```
 
-### "El ejecutable no funciona"
+### "Executable won't work"
 ```powershell
-# 1. Ejecuta como administrador
-# 2. Verifica que distribuiste TODA la carpeta publish
-# 3. Desactiva temporalmente el antivirus
+# 1. Run as administrator
+# 2. Verify you distributed ENTIRE publish folder
+# 3. Temporarily disable antivirus
 ```
 
 ---
 
-## 📞 PRÓXIMOS PASOS
+## 📞 NEXT STEPS
 
-1. **Probar la aplicación**
+1. **Test the application**
    ```batch
    COMANDOS-RAPIDOS.bat
-   → Opción 3 (Ejecutar aplicación)
+   → Option 3 (Run application)
    ```
 
-2. **Crear instalador para distribuir**
+2. **Create installer for distribution**
    ```batch
    COMANDOS-RAPIDOS.bat
-   → Opción 2 (Crear instalador)
+   → Option 2 (Create installer)
    ```
 
-3. **Personalizar**
-   - Cambiar icono en `MacroManager\app.ico`
-   - Modificar info en `MacroManager.csproj`
-   - Ajustar versión en `installer.iss`
+3. **Customize**
+   - Change icon in `MacroManager\app.ico`
+   - Modify info in `MacroManager.csproj`
+   - Adjust version in `installer.iss`
 
-4. **Distribuir**
-   - Subir instalador a Google Drive / Mega
-   - Crear página de descarga
-   - Compartir con la comunidad
+4. **Distribute**
+   - Upload installer to Google Drive / Mega
+   - Create download page
+   - Share with community
 
 ---
 
-## 📊 ARCHIVOS FINALES DE DISTRIBUCIÓN
+## 📊 FINAL DISTRIBUTION FILES
 
-### Para usuarios finales:
+### For end users:
 ```
 Output\
-└── MacroManager_v1.0.0_Setup.exe  ← Distribuir este archivo
+└── MacroManager_v1.0.0_Setup.exe  ← Distribute this file
 ```
 
-### O en formato portable:
+### Or in portable format:
 ```
 MacroManager_v1.0.0_Portable.zip
 └── publish/
     ├── MacroManager.exe
-    ├── *.dll (todas las dependencias)
+    ├── *.dll (all dependencies)
     └── README.md
 ```
 
 ---
 
-## ✨ RESUMEN EJECUTIVO
+## ✨ EXECUTIVE SUMMARY
 
-**Estado:** ✅ Proyecto completo y funcional  
-**Compilación:** ✅ Exitosa  
-**Ejecutable:** ✅ Listo en /publish  
-**Instalador:** ⏳ Pendiente (requiere Inno Setup)  
-**Documentación:** ✅ Completa  
+**Status:** ✅ Project complete and functional  
+**Compilation:** ✅ Successful  
+**Executable:** ✅ Ready in /publish  
+**Installer:** ⏳ Pending (requires Inno Setup)  
+**Documentation:** ✅ Complete  
 
-**Para empezar:**
+**To get started:**
 ```batch
-# Doble clic en:
+# Double-click on:
 COMANDOS-RAPIDOS.bat
 ```
 
-**Para distribuir:**
+**To distribute:**
 ```powershell
 .\build-installer.ps1
 ```
 
 ---
 
-**¡Tu Macro Manager está listo para usarse! 🎮🚀**
+**Your MacroManager is ready to use! 🎮🚀**
 
-*Creado con ❤️ para la comunidad de gaming*
+*Created with ❤️ for the gaming community*

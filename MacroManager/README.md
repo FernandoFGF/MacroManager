@@ -1,108 +1,83 @@
-# Macro Manager para Videojuegos
+# MacroManager for Video Games
 
-Aplicación de Windows Forms para crear, grabar y reproducir macros personalizadas para videojuegos.
+Windows Forms application for creating, recording, and playing custom macros for video games.
 
-## 🎮 Características
+## 🎮 Features
 
-- **Grabación de Macros**: Captura automática de acciones de teclado y mouse
-- **Reproducción**: Ejecuta las macros grabadas con repeticiones configurables
-- **Gestión Completa**: Guarda, carga, exporta e importa macros
-- **Interfaz Intuitiva**: Diseño limpio y fácil de usar
-- **Persistencia**: Guarda las macros en formato JSON
+- **Macro Recording**: Automatic capture of keyboard and mouse actions
+- **Playback**: Execute recorded macros with configurable repetitions
+- **Complete Management**: Save, load, export and import macros
+- **Intuitive Interface**: Clean and easy-to-use design
+- **Persistence**: Saves macros in JSON format
 
-## 🚀 Cómo Usar
+## 🚀 How to Use
 
-### Grabar una Macro
+### Record a Macro
 
-1. Haz clic en el botón **⏺ Grabar**
-2. Realiza las acciones que quieres grabar (teclado y mouse)
-3. Haz clic en **⏹ Detener** cuando termines
-4. Asigna un nombre a tu macro
-5. Haz clic en **💾 Guardar**
+1. Click the **⏺ Record** button
+2. Perform the actions you want to record (keyboard and mouse)
+3. Click **⏹ Stop** when finished
+4. Assign a name to your macro
+5. Click **💾 Save**
 
-### Reproducir una Macro
+### Play a Macro
 
-1. Selecciona una macro de la lista
-2. Haz clic en **▶ Reproducir**
-3. Elige cuántas veces repetir (0 = infinito)
-4. La macro se ejecutará automáticamente
+1. Select a macro from the list
+2. Click **▶ Play**
+3. Choose how many times to repeat (0 = infinite)
+4. The macro will execute automatically
 
-### Gestionar Macros
+### Manage Macros
 
-- **Exportar**: Guarda una macro en un archivo .macro para compartir
-- **Importar**: Carga macros desde archivos externos
-- **Eliminar**: Borra macros que ya no necesitas
+- **Export**: Save a macro to a .macro file to share
+- **Import**: Load macros from external files
+- **Delete**: Remove macros you no longer need
 
-## 📋 Requisitos
+## 📋 Requirements
 
-- Windows 10 o superior
-- .NET 8.0 Runtime (incluido en el instalador)
+- Windows 10 or higher
+- .NET 8.0 Runtime (included in the installer)
 
-## 🛠️ Arquitectura
+## 🛠️ Architecture
 
-El proyecto está estructurado con arquitectura orientada a objetos:
+The project is structured with object-oriented architecture:
 
 ```
 MacroManager/
-├── Models/              # Modelos de datos
-│   └── MacroConfig.cs   # Configuración de macros
-├── Services/            # Lógica de negocio
-│   ├── MacroRecorder.cs # Grabación de acciones
-│   ├── MacroPlayer.cs   # Reproducción de macros
-│   └── SettingsManager.cs # Persistencia de datos
-├── MainForm.cs          # Formulario principal
-├── MainForm.Designer.cs # Diseño del formulario
-└── Program.cs           # Punto de entrada
+├── Models/              # Data models
+│   └── MacroConfig.cs   # Macro configuration
+├── Services/            # Business logic
+│   ├── MacroRecorder.cs # Action recording
+│   ├── MacroPlayer.cs   # Action playback
+│   └── SettingsManager.cs # Persistence
+└── MainForm.cs          # User interface
 ```
 
-## 🔧 Compilación
+## 📦 Dependencies
 
-### Desde la terminal:
+- **Newtonsoft.Json 13.0.3**: JSON serialization
+- **InputSimulatorCore 1.0.5**: Keyboard and mouse input simulation
 
-```powershell
-# Restaurar paquetes
-dotnet restore
+## ⚠️ Important Notes
 
-# Compilar en modo Debug
-dotnet build
+### Permissions
+- Requires **Administrator privileges** to capture global keyboard and mouse events
+- On Windows 11, SmartScreen may appear (this is normal, click "More info" → "Run anyway")
 
-# Compilar en modo Release
-dotnet build -c Release
+### Anti-Cheat Systems
+- Some games with anti-cheat may **detect and ban** macro usage
+- **DO NOT use in competitive games** (CS:GO, Valorant, Fortnite ranked, etc.)
+- Use only in casual or single-player games
 
-# Publicar aplicación autónoma
-dotnet publish -c Release -r win-x64 --self-contained true
-```
+### Compatibility
+- ✅ Windows 10/11
+- ✅ x64 Architecture
+- ✅ .NET 8.0
 
-### Desde Visual Studio Code:
+## 📄 License
 
-1. Abre la carpeta del proyecto
-2. Presiona `Ctrl+Shift+B` para compilar
-3. O ejecuta desde el menú: Terminal > Run Build Task
-
-## 📦 Crear Instalador
-
-1. Compila el proyecto en modo Release
-2. Localiza los archivos en `bin/Release/net8.0-windows/publish/`
-3. Abre Inno Setup
-4. Carga el script `installer.iss`
-5. Compila para generar `MacroManager_Setup.exe`
-
-## ⚠️ Advertencias
-
-- Esta aplicación requiere permisos de administrador para capturar eventos globales
-- Algunos juegos con anti-cheat pueden detectar y bloquear macros
-- Usa responsablemente y respeta los términos de servicio de los juegos
-- El uso de macros puede estar prohibido en juegos competitivos
-
-## 📄 Licencia
-
-Este proyecto es de código abierto. Úsalo bajo tu propia responsabilidad.
-
-## 👨‍💻 Desarrollador
-
-Creado como proyecto educativo para aprender C# y Windows Forms.
+Free for personal use. Do not use for competitive gaming.
 
 ---
 
-**Versión**: 1.0.0  
-**Fecha**: 2024
+**MacroManager - Create powerful automation for your gaming sessions! 🎮🚀**

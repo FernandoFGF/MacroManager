@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+using Microsoft.Win32;
 using MacroManager.Models;
 using MacroManager.Services;
 
@@ -34,17 +35,82 @@ namespace MacroManager
         private TextBox _txtDelay;
         private ComboBox _cmbActionType;
 
+        // Theme colors
+        private bool _isDarkMode;
+        private Color _panelBackColor;
+        private Color _panelForeColor;
+        private Color _accentColor;
+        private Color _cardBackColor;
+        private Color _borderColor;
+
         /// <summary>
         /// Constructor
         /// </summary>
         public MainForm()
         {
             InitializeComponent();
-            this.Text = "MacroManager - FIXED LAYOUT";
-            this.BackColor = Color.LightGray;
+            this.Text = "MacroManager - Action Editor";
+            ApplySystemTheme();
             InitializeServices();
             LoadMacros();
             SetupUI();
+        }
+
+        /// <summary>
+        /// Detect system theme and apply modern colors
+        /// </summary>
+        private void ApplySystemTheme()
+        {
+            _isDarkMode = IsSystemDarkMode();
+            
+            if (_isDarkMode)
+            {
+                // Modern dark theme colors
+                this.BackColor = Color.FromArgb(18, 18, 18);
+                this.ForeColor = Color.FromArgb(255, 255, 255);
+                _panelBackColor = Color.FromArgb(25, 25, 25);
+                _panelForeColor = Color.FromArgb(255, 255, 255);
+                _accentColor = Color.FromArgb(0, 120, 215);
+                _cardBackColor = Color.FromArgb(32, 32, 32);
+                _borderColor = Color.FromArgb(64, 64, 64);
+            }
+            else
+            {
+                // Modern light theme colors
+                this.BackColor = Color.FromArgb(248, 248, 248);
+                this.ForeColor = Color.FromArgb(32, 32, 32);
+                _panelBackColor = Color.FromArgb(255, 255, 255);
+                _panelForeColor = Color.FromArgb(32, 32, 32);
+                _accentColor = Color.FromArgb(0, 120, 215);
+                _cardBackColor = Color.FromArgb(248, 248, 248);
+                _borderColor = Color.FromArgb(200, 200, 200);
+            }
+        }
+
+        /// <summary>
+        /// Check if Windows system theme is set to dark mode
+        /// </summary>
+        private bool IsSystemDarkMode()
+        {
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"))
+                {
+                    if (key != null)
+                    {
+                        object? value = key.GetValue("AppsUseLightTheme");
+                        if (value != null && value is int intValue)
+                        {
+                            return intValue == 0; // 0 = Dark mode, 1 = Light mode
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // If unable to read registry, default to light mode
+            }
+            return false;
         }
 
         /// <summary>
@@ -88,7 +154,7 @@ namespace MacroManager
             Panel mainContentPanel = new Panel
             {
                 Name = "mainContentPanel",
-                BackColor = SystemColors.Window
+                BackColor = _panelBackColor
             };
             this.Controls.Add(mainContentPanel);
 
@@ -111,7 +177,8 @@ namespace MacroManager
             {
                 Dock = DockStyle.Fill,
                 Orientation = Orientation.Vertical,
-                Name = "horizontalSplit"
+                Name = "horizontalSplit",
+                BackColor = _panelBackColor
             };
             mainContentPanel.Controls.Add(horizontalSplit);
 
@@ -122,7 +189,8 @@ namespace MacroManager
             Panel rightContainer = new Panel
             {
                 Dock = DockStyle.Fill,
-                Name = "rightContainer"
+                Name = "rightContainer",
+                BackColor = _panelBackColor
             };
             horizontalSplit.Panel2.Controls.Add(rightContainer);
 
@@ -131,7 +199,8 @@ namespace MacroManager
             {
                 Dock = DockStyle.Fill,
                 Orientation = Orientation.Vertical,
-                Name = "verticalSplit"
+                Name = "verticalSplit",
+                BackColor = _panelBackColor
             };
             rightContainer.Controls.Add(verticalSplit);
 
@@ -198,14 +267,24 @@ namespace MacroManager
         }
 
         /// <summary>
-        /// Create macro tree in left sidebar
+        /// Create macro tree in left sidebar with modern styling
         /// </summary>
         private void CreateMacroTree(Control parent)
         {
             _macroTreeView = new TreeView
             {
                 Dock = DockStyle.Fill,
-                Nodes = { }
+                Nodes = { },
+                BackColor = _cardBackColor,
+                ForeColor = _panelForeColor,
+                BorderStyle = BorderStyle.None,
+                Font = new Font("Segoe UI", 10),
+                Indent = 20,
+                ShowLines = false,
+                ShowPlusMinus = false,
+                ShowRootLines = false,
+                FullRowSelect = true,
+                HotTracking = true
             };
 
             RefreshMacroTree();
@@ -234,64 +313,50 @@ namespace MacroManager
         /// </summary>
         private void CreateTextEditorWithSwitch(Control parent)
         {
-            // Create container panel for editor and switch
-            Panel editorContainer = new Panel
+            // Create panel for editor and button
+            Panel editorPanel = new Panel
             {
                 Dock = DockStyle.Fill,
-                Name = "editorContainer"
+                BackColor = _panelBackColor
             };
-            parent.Controls.Add(editorContainer);
 
-            // Create switch button at the top
-            Button switchButton = new Button
-            {
-                Text = "Switch: JSON Original ↔ Simplificado",
-                Height = 30,
-                BackColor = Color.LightBlue,
-                Font = new Font("Segoe UI", 9, FontStyle.Bold)
-            };
-            switchButton.Click += (s, e) => ToggleEditorMode();
-            editorContainer.Controls.Add(switchButton);
-
-            // Create text editor
+            // Create text editor with modern styling
             _textEditorRtb = new RichTextBox
             {
-                Font = new Font("Consolas", 11),
-                Padding = new Padding(5),
+                Dock = DockStyle.Fill,
+                Font = new Font("Cascadia Code", 11),
+                Padding = new Padding(15),
                 WordWrap = false,
-                Text = "TEXTO (original o simplificado)"
+                Text = "// Action list will appear here",
+                BackColor = _cardBackColor,
+                ForeColor = _panelForeColor,
+                BorderStyle = BorderStyle.None,
+                ScrollBars = RichTextBoxScrollBars.Vertical
             };
+
+            // Create modern switch button
+            Button btnSwitch = new Button
+            {
+                Text = "🔄 JSON ↔ Simplified",
+                Dock = DockStyle.Bottom,
+                Height = 45,
+                BackColor = _accentColor,
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                Cursor = Cursors.Hand
+            };
+            btnSwitch.FlatAppearance.BorderSize = 0;
+
+            btnSwitch.Click += (s, e) => ToggleEditorMode();
 
             // Add selection change event to update rule editor
             _textEditorRtb.SelectionChanged += (s, e) => UpdateRuleEditor();
 
-            editorContainer.Controls.Add(_textEditorRtb);
+            editorPanel.Controls.Add(_textEditorRtb);
+            editorPanel.Controls.Add(btnSwitch);
 
-            // Ajustar posicionamiento manual para evitar superposición
-            editorContainer.Resize += (s, e) => {
-                if (switchButton != null && _textEditorRtb != null) {
-                    // Posicionar el botón en la parte superior
-                    switchButton.Location = new Point(0, 0);
-                    switchButton.Width = editorContainer.Width;
-                    
-                    // Posicionar el editor debajo del botón
-                    int buttonHeight = switchButton.Height;
-                    _textEditorRtb.Location = new Point(0, buttonHeight);
-                    _textEditorRtb.Size = new Size(editorContainer.Width, editorContainer.Height - buttonHeight);
-                }
-            };
-
-            // Configurar posición inicial usando el evento Resize del formulario
-            this.Load += (s, e) => {
-                if (switchButton != null && _textEditorRtb != null) {
-                    switchButton.Location = new Point(0, 0);
-                    switchButton.Width = editorContainer.Width;
-                    
-                    int buttonHeight = switchButton.Height;
-                    _textEditorRtb.Location = new Point(0, buttonHeight);
-                    _textEditorRtb.Size = new Size(editorContainer.Width, editorContainer.Height - buttonHeight);
-                }
-            };
+            parent.Controls.Add(editorPanel);
         }
 
         /// <summary>
@@ -303,141 +368,189 @@ namespace MacroManager
             {
                 Dock = DockStyle.Fill,
                 Padding = new Padding(10),
-                BackColor = SystemColors.Control
+                BackColor = _panelBackColor
             };
 
-            // Title label
+            // Modern title label
             Label lblTitle = new Label
             {
-                Text = "Cuando se clicka en una linea del editor, aparecerán aquí los parámetros como el tiempo o la tecla a pulsar y podremos editarla",
+                Text = "📝 Click on a line in the editor to see and modify action parameters",
                 Dock = DockStyle.Top,
                 Height = 60,
-                Font = new Font("Segoe UI", 9),
-                TextAlign = ContentAlignment.MiddleLeft
+                Font = new Font("Segoe UI", 9, FontStyle.Italic),
+                TextAlign = ContentAlignment.MiddleLeft,
+                ForeColor = _panelForeColor,
+                BackColor = _panelBackColor,
+                Padding = new Padding(10, 5, 10, 5)
             };
             ruleEditorPanel.Controls.Add(lblTitle);
 
-            // Key input
+            // Modern key input
             Label lblKey = new Label
             {
-                Text = "Tecla:",
+                Text = "⌨️ Key:",
                 Dock = DockStyle.Top,
                 Height = 25,
-                Font = new Font("Segoe UI", 9),
-                TextAlign = ContentAlignment.MiddleLeft
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft,
+                ForeColor = _panelForeColor,
+                BackColor = _panelBackColor
             };
             ruleEditorPanel.Controls.Add(lblKey);
 
             TextBox txtKey = new TextBox
             {
                 Dock = DockStyle.Top,
-                Height = 30,
-                Font = new Font("Consolas", 10),
-                Name = "txtKey"
+                Height = 35,
+                Font = new Font("Cascadia Code", 10),
+                Name = "txtKey",
+                BackColor = _cardBackColor,
+                ForeColor = _panelForeColor,
+                BorderStyle = BorderStyle.FixedSingle
             };
             ruleEditorPanel.Controls.Add(txtKey);
 
-            // Delay input
+            // Modern delay input
             Label lblDelay = new Label
             {
-                Text = "Retraso (ms):",
+                Text = "⏱️ Delay (ms):",
                 Dock = DockStyle.Top,
                 Height = 25,
-                Font = new Font("Segoe UI", 9),
-                TextAlign = ContentAlignment.MiddleLeft
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft,
+                ForeColor = _panelForeColor,
+                BackColor = _panelBackColor
             };
             ruleEditorPanel.Controls.Add(lblDelay);
 
             TextBox txtDelay = new TextBox
             {
                 Dock = DockStyle.Top,
-                Height = 30,
-                Font = new Font("Consolas", 10),
-                Name = "txtDelay"
+                Height = 35,
+                Font = new Font("Cascadia Code", 10),
+                Name = "txtDelay",
+                BackColor = _cardBackColor,
+                ForeColor = _panelForeColor,
+                BorderStyle = BorderStyle.FixedSingle
             };
             ruleEditorPanel.Controls.Add(txtDelay);
 
-            // Action type input
+            // Modern action type input
             Label lblActionType = new Label
             {
-                Text = "Tipo de Acción:",
+                Text = "🎯 Action Type:",
                 Dock = DockStyle.Top,
                 Height = 25,
-                Font = new Font("Segoe UI", 9),
-                TextAlign = ContentAlignment.MiddleLeft
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft,
+                ForeColor = _panelForeColor,
+                BackColor = _panelBackColor
             };
             ruleEditorPanel.Controls.Add(lblActionType);
 
             ComboBox cmbActionType = new ComboBox
             {
                 Dock = DockStyle.Top,
-                Height = 30,
+                Height = 35,
                 Font = new Font("Segoe UI", 9),
                 Name = "cmbActionType",
-                DropDownStyle = ComboBoxStyle.DropDownList
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                BackColor = _cardBackColor,
+                ForeColor = _panelForeColor,
+                FlatStyle = FlatStyle.Flat
             };
             cmbActionType.Items.AddRange(new[] { "KeyPress", "KeyDown", "KeyUp", "MouseClick", "MouseMove" });
             cmbActionType.SelectedIndex = 0;
             ruleEditorPanel.Controls.Add(cmbActionType);
 
-            // Save button
-            Button btnSave = new Button
-            {
-                Text = "Guardar Cambios",
-                Dock = DockStyle.Top,
-                Height = 40,
-                BackColor = Color.Green,
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                Margin = new Padding(0, 10, 0, 0)
-            };
-            btnSave.Click += (s, e) => SaveRuleChanges(txtKey, txtDelay, cmbActionType);
-            ruleEditorPanel.Controls.Add(btnSave);
-
-            // + and - buttons at the bottom
+            // + and - buttons at the bottom with Save button
             Panel buttonPanel = new Panel
             {
                 Dock = DockStyle.Bottom,
-                Height = 50,
-                BackColor = SystemColors.Control
+                Height = 100,
+                BackColor = _panelBackColor
+            };
+
+            // Top row: +, -, Duplicate buttons
+            Panel topButtonRow = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 40,
+                BackColor = _panelBackColor
             };
 
             Button btnAdd = new Button
             {
-                Text = "+",
-                Location = new Point(10, 10),
-                Size = new Size(40, 30),
-                BackColor = Color.Green,
+                Text = "➕",
+                Location = new Point(10, 5),
+                Size = new Size(45, 35),
+                BackColor = Color.FromArgb(76, 175, 80),
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 12, FontStyle.Bold)
+                Font = new Font("Segoe UI", 14, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
             };
+            btnAdd.FlatAppearance.BorderSize = 0;
             btnAdd.Click += (s, e) => AddActionFromText();
-            buttonPanel.Controls.Add(btnAdd);
+            topButtonRow.Controls.Add(btnAdd);
 
             Button btnRemove = new Button
             {
-                Text = "-",
-                Location = new Point(60, 10),
-                Size = new Size(40, 30),
-                BackColor = Color.Red,
+                Text = "➖",
+                Location = new Point(65, 5),
+                Size = new Size(45, 35),
+                BackColor = Color.FromArgb(244, 67, 54),
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 12, FontStyle.Bold)
+                Font = new Font("Segoe UI", 14, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
             };
+            btnRemove.FlatAppearance.BorderSize = 0;
             btnRemove.Click += (s, e) => RemoveLineFromText();
-            buttonPanel.Controls.Add(btnRemove);
+            topButtonRow.Controls.Add(btnRemove);
 
             Button btnDuplicate = new Button
             {
-                Text = "Duplicate",
-                Location = new Point(110, 10),
-                Size = new Size(80, 30),
-                BackColor = Color.Blue,
+                Text = "📋 Duplicate",
+                Location = new Point(120, 5),
+                Size = new Size(90, 35),
+                BackColor = Color.FromArgb(33, 150, 243),
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 9, FontStyle.Bold)
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
             };
+            btnDuplicate.FlatAppearance.BorderSize = 0;
             btnDuplicate.Click += (s, e) => DuplicateLineFromText();
-            buttonPanel.Controls.Add(btnDuplicate);
+            topButtonRow.Controls.Add(btnDuplicate);
 
+            buttonPanel.Controls.Add(topButtonRow);
+
+            // Bottom row: Save button
+            Panel bottomButtonRow = new Panel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 45,
+                BackColor = _panelBackColor
+            };
+
+            Button btnSave = new Button
+            {
+                Text = "💾 Save Changes",
+                Dock = DockStyle.Fill,
+                Height = 45,
+                BackColor = Color.FromArgb(76, 175, 80),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 11, FontStyle.Bold),
+                Margin = new Padding(5),
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
+            };
+            btnSave.FlatAppearance.BorderSize = 0;
+            btnSave.Click += (s, e) => SaveRuleChanges(txtKey, txtDelay, cmbActionType);
+            bottomButtonRow.Controls.Add(btnSave);
+
+            buttonPanel.Controls.Add(bottomButtonRow);
             ruleEditorPanel.Controls.Add(buttonPanel);
 
             // Store references for later use
@@ -456,41 +569,49 @@ namespace MacroManager
         {
             Panel playbackPanel = new Panel
             {
-                BackColor = SystemColors.Control,
+                BackColor = _panelBackColor,
                 Padding = new Padding(8)
             };
 
             Label lblPlayback = new Label
             {
-                Text = "Playback Controls: Play, Pause, Stop or Loop Configuration",
+                Text = "🎮 Playback Controls: Record, Play, Stop, and Repeat Options",
                 Dock = DockStyle.Top,
                 Height = 25,
                 Font = new Font("Segoe UI", 9, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft,
-                Margin = new Padding(0, 0, 0, 5)
+                Margin = new Padding(0, 0, 0, 5),
+                BackColor = _panelBackColor,
+                ForeColor = _panelForeColor
             };
 
             _btnPlay = new Button
             {
-                Text = "▶ Play",
-                Width = 90,
-                Height = 35,
+                Text = "▶️ Play",
+                Width = 100,
+                Height = 40,
                 BackColor = Color.FromArgb(33, 150, 243),
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 10, FontStyle.Bold)
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
             };
+            _btnPlay.FlatAppearance.BorderSize = 0;
             _btnPlay.Click += (s, e) => PlayCurrentMacro();
 
             _btnStop = new Button
             {
-                Text = "⏹ Stop",
-                Width = 90,
-                Height = 35,
+                Text = "⏹️ Stop",
+                Width = 100,
+                Height = 40,
                 BackColor = Color.FromArgb(255, 152, 0),
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                Margin = new Padding(5, 0, 0, 0)
+                Margin = new Padding(5, 0, 0, 0),
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
             };
+            _btnStop.FlatAppearance.BorderSize = 0;
             _btnStop.Click += (s, e) => _player.Stop();
 
             // Add buttons with FlowLayoutPanel for positioning

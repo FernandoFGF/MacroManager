@@ -36,7 +36,6 @@ namespace MacroManager
         private ComboBox _cmbActionType;
 
         // Theme colors
-        private bool _isDarkMode;
         private Color _panelBackColor;
         private Color _panelForeColor;
         private Color _accentColor;
@@ -57,34 +56,33 @@ namespace MacroManager
         }
 
         /// <summary>
-        /// Detect system theme and apply modern colors
+        /// Apply retro green LCD theme colors
         /// </summary>
         private void ApplySystemTheme()
         {
-            _isDarkMode = IsSystemDarkMode();
+            // Retro green LCD color scheme (ignoring system theme)
+            // Dark green background with bright LCD green text
             
-            if (_isDarkMode)
-            {
-                // Modern dark theme colors
-                this.BackColor = Color.FromArgb(18, 18, 18);
-                this.ForeColor = Color.FromArgb(255, 255, 255);
-                _panelBackColor = Color.FromArgb(25, 25, 25);
-                _panelForeColor = Color.FromArgb(255, 255, 255);
-                _accentColor = Color.FromArgb(0, 120, 215);
-                _cardBackColor = Color.FromArgb(32, 32, 32);
-                _borderColor = Color.FromArgb(64, 64, 64);
-            }
-            else
-            {
-                // Modern light theme colors
-                this.BackColor = Color.FromArgb(248, 248, 248);
-                this.ForeColor = Color.FromArgb(32, 32, 32);
-                _panelBackColor = Color.FromArgb(255, 255, 255);
-                _panelForeColor = Color.FromArgb(32, 32, 32);
-                _accentColor = Color.FromArgb(0, 120, 215);
-                _cardBackColor = Color.FromArgb(248, 248, 248);
-                _borderColor = Color.FromArgb(200, 200, 200);
-            }
+            // Very dark green background (almost black with green tint)
+            this.BackColor = Color.FromArgb(12, 32, 12);
+            
+            // Bright LCD green text
+            this.ForeColor = Color.FromArgb(0, 255, 0);
+            
+            // Panel backgrounds - slightly lighter dark green
+            _panelBackColor = Color.FromArgb(15, 40, 15);
+            
+            // Panel text - bright green
+            _panelForeColor = Color.FromArgb(0, 255, 0);
+            
+            // Accent color - lime green for buttons
+            _accentColor = Color.FromArgb(50, 205, 50);
+            
+            // Card background - dark green with slight variation
+            _cardBackColor = Color.FromArgb(18, 48, 18);
+            
+            // Border color - darker green
+            _borderColor = Color.FromArgb(34, 100, 34);
         }
 
         /// <summary>
@@ -98,7 +96,7 @@ namespace MacroManager
                 {
                     if (key != null)
                     {
-                        object? value = key.GetValue("AppsUseLightTheme");
+                        object value = key.GetValue("AppsUseLightTheme");
                         if (value != null && value is int intValue)
                         {
                             return intValue == 0; // 0 = Dark mode, 1 = Light mode
@@ -278,7 +276,7 @@ namespace MacroManager
                 BackColor = _cardBackColor,
                 ForeColor = _panelForeColor,
                 BorderStyle = BorderStyle.None,
-                Font = new Font("Segoe UI", 10),
+                Font = new Font("Courier New", 10),
                 Indent = 20,
                 ShowLines = false,
                 ShowPlusMinus = false,
@@ -324,7 +322,7 @@ namespace MacroManager
             _textEditorRtb = new RichTextBox
             {
                 Dock = DockStyle.Fill,
-                Font = new Font("Cascadia Code", 11),
+                Font = new Font("Courier New", 11),
                 Padding = new Padding(15),
                 WordWrap = false,
                 Text = "// Action list will appear here",
@@ -343,7 +341,7 @@ namespace MacroManager
                 BackColor = _accentColor,
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                Font = new Font("Courier New", 10, FontStyle.Bold),
                 Cursor = Cursors.Hand
             };
             btnSwitch.FlatAppearance.BorderSize = 0;
@@ -377,7 +375,7 @@ namespace MacroManager
                 Text = "📝 Click on a line in the editor to see and modify action parameters",
                 Dock = DockStyle.Top,
                 Height = 60,
-                Font = new Font("Segoe UI", 9, FontStyle.Italic),
+                Font = new Font("Courier New", 9, FontStyle.Italic),
                 TextAlign = ContentAlignment.MiddleLeft,
                 ForeColor = _panelForeColor,
                 BackColor = _panelBackColor,
@@ -391,7 +389,7 @@ namespace MacroManager
                 Text = "⌨️ Key:",
                 Dock = DockStyle.Top,
                 Height = 25,
-                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Font = new Font("Courier New", 9, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft,
                 ForeColor = _panelForeColor,
                 BackColor = _panelBackColor
@@ -402,7 +400,7 @@ namespace MacroManager
             {
                 Dock = DockStyle.Top,
                 Height = 35,
-                Font = new Font("Cascadia Code", 10),
+                Font = new Font("Courier New", 10),
                 Name = "txtKey",
                 BackColor = _cardBackColor,
                 ForeColor = _panelForeColor,
@@ -416,7 +414,7 @@ namespace MacroManager
                 Text = "⏱️ Delay (ms):",
                 Dock = DockStyle.Top,
                 Height = 25,
-                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Font = new Font("Courier New", 9, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft,
                 ForeColor = _panelForeColor,
                 BackColor = _panelBackColor
@@ -427,7 +425,7 @@ namespace MacroManager
             {
                 Dock = DockStyle.Top,
                 Height = 35,
-                Font = new Font("Cascadia Code", 10),
+                Font = new Font("Courier New", 10),
                 Name = "txtDelay",
                 BackColor = _cardBackColor,
                 ForeColor = _panelForeColor,
@@ -441,7 +439,7 @@ namespace MacroManager
                 Text = "🎯 Action Type:",
                 Dock = DockStyle.Top,
                 Height = 25,
-                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Font = new Font("Courier New", 9, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft,
                 ForeColor = _panelForeColor,
                 BackColor = _panelBackColor
@@ -452,7 +450,7 @@ namespace MacroManager
             {
                 Dock = DockStyle.Top,
                 Height = 35,
-                Font = new Font("Segoe UI", 9),
+                Font = new Font("Courier New", 9),
                 Name = "cmbActionType",
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 BackColor = _cardBackColor,
@@ -486,7 +484,7 @@ namespace MacroManager
                 Size = new Size(45, 35),
                 BackColor = Color.FromArgb(76, 175, 80),
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
+                Font = new Font("Courier New", 14, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };
@@ -501,7 +499,7 @@ namespace MacroManager
                 Size = new Size(45, 35),
                 BackColor = Color.FromArgb(244, 67, 54),
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
+                Font = new Font("Courier New", 14, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };
@@ -516,7 +514,7 @@ namespace MacroManager
                 Size = new Size(90, 35),
                 BackColor = Color.FromArgb(33, 150, 243),
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Font = new Font("Courier New", 9, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };
@@ -541,7 +539,7 @@ namespace MacroManager
                 Height = 45,
                 BackColor = Color.FromArgb(76, 175, 80),
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 11, FontStyle.Bold),
+                Font = new Font("Courier New", 11, FontStyle.Bold),
                 Margin = new Padding(5),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
@@ -578,7 +576,7 @@ namespace MacroManager
                 Text = "🎮 Playback Controls: Record, Play, Stop, and Repeat Options",
                 Dock = DockStyle.Top,
                 Height = 25,
-                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Font = new Font("Courier New", 9, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft,
                 Margin = new Padding(0, 0, 0, 5),
                 BackColor = _panelBackColor,
@@ -592,7 +590,7 @@ namespace MacroManager
                 Height = 40,
                 BackColor = Color.FromArgb(33, 150, 243),
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                Font = new Font("Courier New", 10, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };
@@ -606,7 +604,7 @@ namespace MacroManager
                 Height = 40,
                 BackColor = Color.FromArgb(255, 152, 0),
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                Font = new Font("Courier New", 10, FontStyle.Bold),
                 Margin = new Padding(5, 0, 0, 0),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand

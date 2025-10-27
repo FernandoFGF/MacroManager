@@ -21,4 +21,11 @@
     <PackageReference Include="InputSimulatorCore" Version="1.0.5" />
   </ItemGroup>
 
+  <!-- Copy uiconfig.json to output directory -->
+  <ItemGroup>
+    <None Update="uiconfig.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

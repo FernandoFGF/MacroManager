@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using Microsoft.Win32;
 using MacroManager.Models;
 using MacroManager.Services;
+using Newtonsoft.Json.Linq;
 
 namespace MacroManager
 {
@@ -34,6 +36,9 @@ namespace MacroManager
         private TextBox _txtKey;
         private TextBox _txtDelay;
         private ComboBox _cmbActionType;
+        
+        // Selected action tracking
+        private int _selectedActionIndex = -1;
 
         // Theme colors
         private Color _panelBackColor;
@@ -42,6 +47,17 @@ namespace MacroManager
         private Color _cardBackColor;
         private Color _borderColor;
 
+        // UI Configuration
+        private int _minWindowWidth = 1000;
+        private int _minWindowHeight = 700;
+        private int _defaultWindowWidth = 1200;
+        private int _defaultWindowHeight = 800;
+        private double _treeViewPercentage = 0.25;
+        private double _editorPercentage = 0.6666;
+        private int _playbackPanelHeight = 80;
+        private int _minimumTreeViewWidth = 200;
+        private int _minimumEditorWidth = 400;
+
         /// <summary>
         /// Constructor
         /// </summary>
@@ -49,6 +65,7 @@ namespace MacroManager
         {
             InitializeComponent();
             this.Text = "MacroManager - Action Editor";
+            LoadUIConfiguration();
             ApplySystemTheme();
             InitializeServices();
             LoadMacros();
@@ -112,6 +129,87 @@ namespace MacroManager
         }
 
         /// <summary>
+        /// Load UI configuration from uiconfig.json
+        /// Searches in multiple locations: executable directory, project directory
+        /// </summary>
+        private void LoadUIConfiguration()
+        {
+            try
+            {
+                // Try multiple locations for the config file
+                string[] possiblePaths = new string[]
+                {
+                    // First: Next to the executable (from bin/Release/)
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "uiconfig.json"),
+                    // Second: In the project root (for development)
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "uiconfig.json"),
+                    // Third: In the MacroManager folder (source location)
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "MacroManager", "uiconfig.json"),
+                    // Fourth: Try finding it relative to source
+                    "uiconfig.json"
+                };
+
+                string configPath = null;
+                foreach (var path in possiblePaths)
+                {
+                    string fullPath = Path.GetFullPath(path);
+                    if (File.Exists(fullPath))
+                    {
+                        configPath = fullPath;
+                        break;
+                    }
+                }
+
+                if (configPath != null && File.Exists(configPath))
+                {
+                    string jsonContent = File.ReadAllText(configPath);
+                    JObject config = JObject.Parse(jsonContent);
+
+                    // Load window settings
+                    if (config["window"] != null)
+                    {
+                        _minWindowWidth = config["window"]["minWidth"]?.Value<int>() ?? _minWindowWidth;
+                        _minWindowHeight = config["window"]["minHeight"]?.Value<int>() ?? _minWindowHeight;
+                        _defaultWindowWidth = config["window"]["defaultWidth"]?.Value<int>() ?? _defaultWindowWidth;
+                        _defaultWindowHeight = config["window"]["defaultHeight"]?.Value<int>() ?? _defaultWindowHeight;
+                    }
+
+                    // Load layout settings
+                    if (config["layout"] != null)
+                    {
+                        double treePercent = config["layout"]["treeViewPercentage"]?.Value<double>() ?? _treeViewPercentage;
+                        _treeViewPercentage = treePercent / 100.0; // Convert percentage to decimal
+
+                        double editorPercent = config["layout"]["editorPercentage"]?.Value<double>() ?? _editorPercentage;
+                        _editorPercentage = editorPercent / 100.0; // Convert percentage to decimal
+
+                        _playbackPanelHeight = config["layout"]["playbackPanelHeight"]?.Value<int>() ?? _playbackPanelHeight;
+                    }
+
+                    // Load size constraints
+                    if (config["sizes"] != null)
+                    {
+                        _minimumTreeViewWidth = config["sizes"]["minimumTreeViewWidth"]?.Value<int>() ?? _minimumTreeViewWidth;
+                        _minimumEditorWidth = config["sizes"]["minimumEditorWidth"]?.Value<int>() ?? _minimumEditorWidth;
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"✓ Config loaded from: {configPath}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"⚠ Config file not found. Using default settings.");
+                    System.Diagnostics.Debug.WriteLine($"Searched in:\n  - {string.Join("\n  - ", possiblePaths.Select(p => Path.GetFullPath(p)))}");
+                }
+            }
+            catch (Exception ex)
+            {
+                // If there's an error loading config, use defaults
+                System.Diagnostics.Debug.WriteLine($"✗ Error loading config: {ex.Message}");
+                MessageBox.Show($"Error loading UI configuration:\n{ex.Message}\n\nUsing default settings.", "Configuration Warning");
+            }
+        }
+
+        /// <summary>
         /// Initialize services
         /// </summary>
         private void InitializeServices()
@@ -139,9 +237,10 @@ namespace MacroManager
         /// </summary>
         private void SetupUI()
         {
-            // Set AutoScaleMode and minimum size
+            // Set AutoScaleMode and minimum size from configuration
             this.AutoScaleMode = AutoScaleMode.Font;
-            this.MinimumSize = new Size(1000, 700);
+            this.MinimumSize = new Size(_minWindowWidth, _minWindowHeight);
+            this.Size = new Size(_defaultWindowWidth, _defaultWindowHeight);
 
             // 1. Create menu bar FIRST
             MenuStrip menu = CreateMenuBar();
@@ -211,16 +310,16 @@ namespace MacroManager
             // 10. Create playback panel in the center, below editor
             Panel playbackPanel = CreatePlaybackPanelControl();
             playbackPanel.Dock = DockStyle.Bottom;
-            playbackPanel.Height = 80;
+            playbackPanel.Height = _playbackPanelHeight;
             verticalSplit.Panel1.Controls.Add(playbackPanel); // Add to center panel only
 
             // 11. Configure splitter distances after all controls are created
             this.Load += (s, e) => {
-                // Set horizontal split to 25% for TreeView
-                horizontalSplit.SplitterDistance = Math.Max(200, (int)(horizontalSplit.Width * 0.25));
+                // Set horizontal split based on configuration
+                horizontalSplit.SplitterDistance = Math.Max(_minimumTreeViewWidth, (int)(horizontalSplit.Width * _treeViewPercentage));
                 
-                // Set vertical split to 66.66% for Editor
-                verticalSplit.SplitterDistance = Math.Max(400, (int)(verticalSplit.Width * 0.6666));
+                // Set vertical split based on configuration
+                verticalSplit.SplitterDistance = Math.Max(_minimumEditorWidth, (int)(verticalSplit.Width * _editorPercentage));
             };
 
             // Load last used macro or prompt to create first
@@ -311,13 +410,6 @@ namespace MacroManager
         /// </summary>
         private void CreateTextEditorWithSwitch(Control parent)
         {
-            // Create panel for editor and button
-            Panel editorPanel = new Panel
-            {
-                Dock = DockStyle.Fill,
-                BackColor = _panelBackColor
-            };
-
             // Create text editor with modern styling
             _textEditorRtb = new RichTextBox
             {
@@ -329,32 +421,14 @@ namespace MacroManager
                 BackColor = _cardBackColor,
                 ForeColor = _panelForeColor,
                 BorderStyle = BorderStyle.None,
-                ScrollBars = RichTextBoxScrollBars.Vertical
+                ScrollBars = RichTextBoxScrollBars.Vertical,
+                ReadOnly = true  // Make read-only - edits only through right panel
             };
 
-            // Create modern switch button
-            Button btnSwitch = new Button
-            {
-                Text = "🔄 JSON ↔ Simplified",
-                Dock = DockStyle.Bottom,
-                Height = 45,
-                BackColor = _accentColor,
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Courier New", 10, FontStyle.Bold),
-                Cursor = Cursors.Hand
-            };
-            btnSwitch.FlatAppearance.BorderSize = 0;
+            // Add click event to select action
+            _textEditorRtb.MouseClick += (s, e) => SelectActionFromClick(e.Location);
 
-            btnSwitch.Click += (s, e) => ToggleEditorMode();
-
-            // Add selection change event to update rule editor
-            _textEditorRtb.SelectionChanged += (s, e) => UpdateRuleEditor();
-
-            editorPanel.Controls.Add(_textEditorRtb);
-            editorPanel.Controls.Add(btnSwitch);
-
-            parent.Controls.Add(editorPanel);
+            parent.Controls.Add(_textEditorRtb);
         }
 
         /// <summary>
@@ -406,6 +480,8 @@ namespace MacroManager
                 ForeColor = _panelForeColor,
                 BorderStyle = BorderStyle.FixedSingle
             };
+            // Auto-save on text change
+            txtKey.TextChanged += (s, e) => SaveActionChanges();
             ruleEditorPanel.Controls.Add(txtKey);
 
             // Modern delay input
@@ -431,6 +507,8 @@ namespace MacroManager
                 ForeColor = _panelForeColor,
                 BorderStyle = BorderStyle.FixedSingle
             };
+            // Auto-save on text change
+            txtDelay.TextChanged += (s, e) => SaveActionChanges();
             ruleEditorPanel.Controls.Add(txtDelay);
 
             // Modern action type input
@@ -457,8 +535,10 @@ namespace MacroManager
                 ForeColor = _panelForeColor,
                 FlatStyle = FlatStyle.Flat
             };
-            cmbActionType.Items.AddRange(new[] { "KeyPress", "KeyDown", "KeyUp", "MouseClick", "MouseMove" });
+            cmbActionType.Items.AddRange(new[] { "KeyPress", "KeyDown", "KeyUp", "MouseLeftDown", "MouseLeftUp", "MouseRightDown", "MouseRightUp", "MouseMove", "Delay" });
             cmbActionType.SelectedIndex = 0;
+            // Auto-save on selection change
+            cmbActionType.SelectedIndexChanged += (s, e) => SaveActionChanges();
             ruleEditorPanel.Controls.Add(cmbActionType);
 
             // + and - buttons at the bottom with Save button
@@ -479,39 +559,39 @@ namespace MacroManager
 
             Button btnAdd = new Button
             {
-                Text = "➕",
+                Text = "➕ Add",
                 Location = new Point(10, 5),
-                Size = new Size(45, 35),
+                Size = new Size(70, 35),
                 BackColor = Color.FromArgb(76, 175, 80),
                 ForeColor = Color.White,
-                Font = new Font("Courier New", 14, FontStyle.Bold),
+                Font = new Font("Courier New", 10, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };
             btnAdd.FlatAppearance.BorderSize = 0;
-            btnAdd.Click += (s, e) => AddActionFromText();
+            btnAdd.Click += (s, e) => AddNewAction();
             topButtonRow.Controls.Add(btnAdd);
 
             Button btnRemove = new Button
             {
-                Text = "➖",
-                Location = new Point(65, 5),
-                Size = new Size(45, 35),
+                Text = "➖ Delete",
+                Location = new Point(85, 5),
+                Size = new Size(85, 35),
                 BackColor = Color.FromArgb(244, 67, 54),
                 ForeColor = Color.White,
-                Font = new Font("Courier New", 14, FontStyle.Bold),
+                Font = new Font("Courier New", 10, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };
             btnRemove.FlatAppearance.BorderSize = 0;
-            btnRemove.Click += (s, e) => RemoveLineFromText();
+            btnRemove.Click += (s, e) => DeleteSelectedAction();
             topButtonRow.Controls.Add(btnRemove);
 
             Button btnDuplicate = new Button
             {
                 Text = "📋 Duplicate",
-                Location = new Point(120, 5),
-                Size = new Size(90, 35),
+                Location = new Point(175, 5),
+                Size = new Size(95, 35),
                 BackColor = Color.FromArgb(33, 150, 243),
                 ForeColor = Color.White,
                 Font = new Font("Courier New", 9, FontStyle.Bold),
@@ -519,7 +599,7 @@ namespace MacroManager
                 Cursor = Cursors.Hand
             };
             btnDuplicate.FlatAppearance.BorderSize = 0;
-            btnDuplicate.Click += (s, e) => DuplicateLineFromText();
+            btnDuplicate.Click += (s, e) => DuplicateSelectedAction();
             topButtonRow.Controls.Add(btnDuplicate);
 
             buttonPanel.Controls.Add(topButtonRow);
@@ -545,7 +625,7 @@ namespace MacroManager
                 Cursor = Cursors.Hand
             };
             btnSave.FlatAppearance.BorderSize = 0;
-            btnSave.Click += (s, e) => SaveRuleChanges(txtKey, txtDelay, cmbActionType);
+            btnSave.Click += (s, e) => SaveCurrentMacro();
             bottomButtonRow.Controls.Add(btnSave);
 
             buttonPanel.Controls.Add(bottomButtonRow);
@@ -631,39 +711,172 @@ namespace MacroManager
         }
 
         /// <summary>
-        /// Update rule editor when selection changes in text editor
+        /// Select action from click location
+        /// </summary>
+        private void SelectActionFromClick(Point clickPoint)
+        {
+            if (_textEditorRtb == null || _currentMacro == null) return;
+
+            int charIndex = _textEditorRtb.GetCharIndexFromPosition(clickPoint);
+            string fullText = _textEditorRtb.Text;
+
+            // Find which action block was clicked
+            int actionIndex = -1;
+            for (int i = 0; i < fullText.Length; i++)
+            {
+                string marker = $"[ACTION_INDEX_";
+                int markerPos = fullText.IndexOf(marker, i);
+                if (markerPos == -1 || markerPos > charIndex) break;
+
+                if (charIndex >= markerPos && charIndex < markerPos + marker.Length + 5)
+                {
+                    // Extract action index from marker
+                    int startPos = markerPos + marker.Length;
+                    int endPos = fullText.IndexOf("]", startPos);
+                    if (endPos > startPos)
+                    {
+                        string indexStr = fullText.Substring(startPos, endPos - startPos);
+                        if (int.TryParse(indexStr, out int idx))
+                        {
+                            actionIndex = idx;
+                        }
+                    }
+                }
+                i = markerPos + 1;
+            }
+
+            // If not found by marker, find the action block we're in
+            if (actionIndex == -1)
+            {
+                int lineIndex = _textEditorRtb.GetLineFromCharIndex(charIndex);
+                int blockIndex = 0;
+                for (int i = 0; i < lineIndex; i++)
+                {
+                    string line = _textEditorRtb.Lines[i];
+                    if (line.Contains("[ACTION_INDEX_"))
+                    {
+                        blockIndex++;
+                    }
+                }
+                actionIndex = blockIndex - 1;
+            }
+
+            LoadActionToEditor(actionIndex);
+            HighlightAction(actionIndex);
+        }
+
+        /// <summary>
+        /// Load action to the right panel editor
+        /// </summary>
+        private void LoadActionToEditor(int actionIndex)
+        {
+            if (_currentMacro == null || actionIndex < 0 || actionIndex >= _currentMacro.Actions.Count)
+            {
+                ClearRuleEditor();
+                return;
+            }
+
+            _selectedActionIndex = actionIndex;
+            var action = _currentMacro.Actions[actionIndex];
+
+            // Populate fields
+            _txtKey.Text = GetKeyDisplay(action);
+            _txtDelay.Text = action.DelayMs.ToString();
+            _cmbActionType.SelectedItem = action.Type.ToString();
+        }
+
+        /// <summary>
+        /// Clear rule editor
+        /// </summary>
+        private void ClearRuleEditor()
+        {
+            _selectedActionIndex = -1;
+            _txtKey.Text = "";
+            _txtDelay.Text = "0";
+            _cmbActionType.SelectedIndex = 0;
+        }
+
+        /// <summary>
+        /// Highlight selected action in the editor
+        /// </summary>
+        private void HighlightAction(int actionIndex)
+        {
+            if (_textEditorRtb == null || actionIndex < 0) return;
+
+            // Clear previous highlighting
+            _textEditorRtb.SelectAll();
+            _textEditorRtb.SelectionColor = _panelForeColor;
+            _textEditorRtb.SelectionBackColor = _cardBackColor;
+
+            // Find and highlight the action block
+            string marker = $"[ACTION_INDEX_{actionIndex}]";
+            int markerPos = _textEditorRtb.Text.IndexOf(marker);
+            if (markerPos >= 0)
+            {
+                // Find the start of the action block (the ┌ line)
+                int blockStart = _textEditorRtb.Text.LastIndexOf("┌", markerPos);
+                int blockEnd = _textEditorRtb.Text.IndexOf("┘", markerPos) + 1;
+                if (blockEnd > blockStart)
+                {
+                    _textEditorRtb.Select(blockStart, blockEnd - blockStart);
+                    _textEditorRtb.SelectionBackColor = Color.FromArgb(50, 100, 50); // Highlight color
+                    _textEditorRtb.SelectionColor = _panelForeColor;
+                }
+            }
+
+            _textEditorRtb.Select(0, 0); // Deselect text but keep color
+        }
+
+        /// <summary>
+        /// Update rule editor when selection changes in text editor (Legacy - no longer used)
         /// </summary>
         private void UpdateRuleEditor()
         {
-            if (_textEditorRtb == null || _txtKey == null) return;
+            // This is now handled by SelectActionFromClick and LoadActionToEditor
+        }
 
-            // Get selected text or current line
-            string selectedText = _textEditorRtb.SelectedText;
-            if (string.IsNullOrEmpty(selectedText))
+        /// <summary>
+        /// Save changes from right panel to the selected action
+        /// </summary>
+        private void SaveActionChanges()
+        {
+            if (_selectedActionIndex < 0 || _currentMacro == null || _selectedActionIndex >= _currentMacro.Actions.Count)
+                return;
+
+            var action = _currentMacro.Actions[_selectedActionIndex];
+
+            // Update delay
+            if (int.TryParse(_txtDelay.Text, out int delay))
             {
-                int lineIndex = _textEditorRtb.GetLineFromCharIndex(_textEditorRtb.SelectionStart);
-                int lineStart = _textEditorRtb.GetFirstCharIndexFromLine(lineIndex);
-                int lineEnd = _textEditorRtb.GetFirstCharIndexFromLine(lineIndex + 1);
-                if (lineEnd == -1) lineEnd = _textEditorRtb.Text.Length;
-                selectedText = _textEditorRtb.Text.Substring(lineStart, lineEnd - lineStart).Trim();
+                action.DelayMs = delay;
             }
 
-            // Parse the selected rule (format: "Key -> DelayMs")
-            if (selectedText.Contains("->"))
+            // Update action type
+            if (_cmbActionType.SelectedItem != null)
             {
-                var parts = selectedText.Split(new[] { "->" }, StringSplitOptions.None);
-                if (parts.Length == 2)
+                if (Enum.TryParse<ActionType>(_cmbActionType.SelectedItem.ToString(), out ActionType actionType))
                 {
-                    _txtKey.Text = parts[0].Trim();
-                    string delayStr = parts[1].Trim().Replace("ms", "").Trim();
-                    _txtDelay.Text = delayStr;
+                    action.Type = actionType;
                 }
             }
-            else
+
+            // Update key (for keyboard actions)
+            if (_txtKey.Text.Length > 0)
             {
-                _txtKey.Text = selectedText;
-                _txtDelay.Text = "0";
+                try
+                {
+                    Keys key = (Keys)Enum.Parse(typeof(Keys), _txtKey.Text, true);
+                    action.KeyCode = (int)key;
+                }
+                catch
+                {
+                    // Keep previous value if invalid
+                }
             }
+
+            // Refresh the display
+            RefreshActionsDisplay();
+            HighlightAction(_selectedActionIndex);
         }
 
         /// <summary>
@@ -774,36 +987,6 @@ namespace MacroManager
             catch (Exception ex)
             {
                 MessageBox.Show($"Error al formatear JSON: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        /// <summary>
-        /// Toggle between JSON original and simplified mode
-        /// </summary>
-        private void ToggleEditorMode()
-        {
-            if (_textEditorRtb == null) return;
-
-            if (_textEditorRtb.Text.Contains("JSON") || _textEditorRtb.Text.Contains("{"))
-            {
-                // Switch to simplified mode
-                _textEditorRtb.Text = "Q -> 0ms\nW -> 100ms\nE -> 50ms";
-            }
-            else
-            {
-                // Switch to JSON mode
-                if (_currentMacro != null)
-                {
-                    string json = System.Text.Json.JsonSerializer.Serialize(_currentMacro, new System.Text.Json.JsonSerializerOptions 
-                    { 
-                        WriteIndented = true 
-                    });
-                    _textEditorRtb.Text = json;
-                }
-                else
-                {
-                    _textEditorRtb.Text = "{\n  \"Name\": \"Macro_Example\",\n  \"Actions\": [\n    {\n      \"Type\": \"KeyPress\",\n      \"KeyCode\": 81,\n      \"DelayMs\": 0\n    }\n  ]\n}";
-                }
             }
         }
 
@@ -1116,23 +1299,106 @@ namespace MacroManager
             if (_currentMacro == null) return "";
 
             var lines = new List<string>();
+            int index = 1;
+            
             foreach (var action in _currentMacro.Actions)
             {
                 string keyDisplay = GetKeyDisplay(action);
-                lines.Add($"{keyDisplay} -> {action.DelayMs}ms");
+                string actionType = GetActionTypeDisplay(action.Type);
+                
+                // Use a marker format for action identification
+                string actionMarker = $"[ACTION_INDEX_{index - 1}]";
+                
+                lines.Add($"┌─────────────────────────────────────┐");
+                lines.Add($"│ #{index}  {actionType} {actionMarker}");
+                lines.Add($"│ Tecla: {keyDisplay}");
+                lines.Add($"│ Espera: {action.DelayMs}ms");
+                lines.Add($"└─────────────────────────────────────┘");
+                lines.Add($"");
+                
+                index++;
             }
             return string.Join("\r\n", lines);
         }
 
+        private string GetActionTypeDisplay(ActionType type)
+        {
+            return type switch
+            {
+                ActionType.KeyPress => "⌨️  Pulsar Tecla",
+                ActionType.KeyDown => "⬇️  Tecla Pulsada",
+                ActionType.KeyUp => "⬆️  Tecla Soltada",
+                ActionType.MouseLeftDown => "🖱️  Click Ratón",
+                ActionType.MouseLeftUp => "🖱️  Soltar Ratón",
+                ActionType.MouseRightDown => "🖱️  Click Derecho",
+                ActionType.MouseRightUp => "🖱️  Soltar Derecho",
+                ActionType.MouseMove => "↔️  Mover Ratón",
+                ActionType.Delay => "⏱️  Espera",
+                _ => "❓ Desconocida"
+            };
+        }
+
         private void ParseMacroText(string text)
         {
-            // Simple parser: "Q -> 0ms\r\nW -> 100ms\r\nS -> 50ms"
             _currentMacro.Actions.Clear();
+            var lines = text.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+            
+            string currentKeyName = null;
+            int currentDelay = 0;
 
-            foreach (var line in text.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries))
+            foreach (var line in lines)
             {
+                string trimmedLine = line.Trim();
+                
+                // Parse new format: "│ Tecla: H"
+                if (trimmedLine.Contains("Tecla:"))
+                {
+                    var keyPart = trimmedLine.Split(new[] { "Tecla:" }, StringSplitOptions.None);
+                    if (keyPart.Length > 1)
+                    {
+                        currentKeyName = keyPart[1].Trim().Split(' ')[0];
+                    }
+                }
+                
+                // Parse new format: "│ Espera: 100ms"
+                if (trimmedLine.Contains("Espera:"))
+                {
+                    var delayPart = trimmedLine.Split(new[] { "Espera:" }, StringSplitOptions.None);
+                    if (delayPart.Length > 1)
+                    {
+                        string delayStr = delayPart[1].Trim().Replace("ms", "").Trim();
+                        if (int.TryParse(delayStr, out int delay))
+                        {
+                            currentDelay = delay;
+                        }
+                    }
+                    
+                    // Try to create action
+                    if (!string.IsNullOrEmpty(currentKeyName))
+                    {
+                        try
+                        {
+                            Keys key = (Keys)Enum.Parse(typeof(Keys), currentKeyName, true);
+                            var action = new MacroAction
+                            {
+                                Type = ActionType.KeyPress,
+                                KeyCode = (int)key,
+                                DelayMs = currentDelay
+                            };
+                            _currentMacro.Actions.Add(action);
+                            currentKeyName = null;
+                            currentDelay = 0;
+                        }
+                        catch
+                        {
+                            // Skip invalid
+                        }
+                    }
+                }
+                
+                // Also support old format: "Q -> 0ms"
                 var parts = line.Split(new[] { "->" }, StringSplitOptions.None);
-                if (parts.Length == 2)
+                if (parts.Length == 2 && !trimmedLine.Contains("│"))
                 {
                     string keyName = parts[0].Trim();
                     string delayStr = parts[1].Trim().Replace("ms", "").Trim();
@@ -1220,6 +1486,88 @@ namespace MacroManager
             form.AcceptButton = btn;
 
             return form.ShowDialog() == DialogResult.OK ? textBox.Text : "";
+        }
+
+
+
+        /// <summary>
+        /// Add a new action
+        /// </summary>
+        private void AddNewAction()
+        {
+            if (_currentMacro == null)
+            {
+                MessageBox.Show("No macro is currently open.", "Info");
+                return;
+            }
+
+            var newAction = new MacroAction
+            {
+                Type = ActionType.KeyPress,
+                KeyCode = (int)Keys.A,
+                DelayMs = 0
+            };
+
+            _currentMacro.Actions.Add(newAction);
+            _selectedActionIndex = _currentMacro.Actions.Count - 1;
+            RefreshActionsDisplay();
+            LoadActionToEditor(_selectedActionIndex);
+            HighlightAction(_selectedActionIndex);
+        }
+
+        /// <summary>
+        /// Delete the currently selected action
+        /// </summary>
+        private void DeleteSelectedAction()
+        {
+            if (_selectedActionIndex < 0 || _currentMacro == null || _selectedActionIndex >= _currentMacro.Actions.Count)
+            {
+                MessageBox.Show("Please select an action to delete.", "Info");
+                return;
+            }
+
+            _currentMacro.Actions.RemoveAt(_selectedActionIndex);
+            
+            // Adjust selection
+            if (_selectedActionIndex >= _currentMacro.Actions.Count)
+                _selectedActionIndex = _currentMacro.Actions.Count - 1;
+
+            RefreshActionsDisplay();
+            if (_selectedActionIndex >= 0)
+            {
+                LoadActionToEditor(_selectedActionIndex);
+                HighlightAction(_selectedActionIndex);
+            }
+            else
+            {
+                ClearRuleEditor();
+            }
+        }
+
+        /// <summary>
+        /// Duplicate the currently selected action
+        /// </summary>
+        private void DuplicateSelectedAction()
+        {
+            if (_selectedActionIndex < 0 || _currentMacro == null || _selectedActionIndex >= _currentMacro.Actions.Count)
+            {
+                MessageBox.Show("Please select an action to duplicate.", "Info");
+                return;
+            }
+
+            var originalAction = _currentMacro.Actions[_selectedActionIndex];
+            var duplicateAction = new MacroAction
+            {
+                Type = originalAction.Type,
+                KeyCode = originalAction.KeyCode,
+                DelayMs = originalAction.DelayMs
+            };
+
+            _currentMacro.Actions.Insert(_selectedActionIndex + 1, duplicateAction);
+            _selectedActionIndex = _selectedActionIndex + 1;
+            RefreshActionsDisplay();
+            LoadActionToEditor(_selectedActionIndex);
+            HighlightAction(_selectedActionIndex);
         }
 
         #endregion

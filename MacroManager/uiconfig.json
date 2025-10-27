@@ -1,0 +1,17 @@
+{
+  "window": {
+    "minWidth": 600,
+    "minHeight": 700,
+    "defaultWidth": 800,
+    "defaultHeight": 800
+  },
+  "layout": {
+    "treeViewPercentage": 25,
+    "editorPercentage": 55,
+    "playbackPanelHeight": 80
+  },
+  "sizes": {
+    "minimumTreeViewWidth": 200,
+    "minimumEditorWidth": 300
+  }
+}

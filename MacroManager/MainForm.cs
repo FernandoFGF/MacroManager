@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Win32;
 using MacroManager.Models;
@@ -30,8 +31,6 @@ namespace MacroManager
         private Panel _actionsPanel;
         private VScrollBar _actionsScrollBar;
         private Button _btnPlay;
-        private Button _btnStop;
-        private Button _btnPause;
         private NumericUpDown _numLoopCount;
         private TreeView _macroTreeView;
         
@@ -42,6 +41,10 @@ namespace MacroManager
         
         // Selected action tracking
         private int _selectedActionIndex = -1;
+        
+        // Playback state tracking
+        private enum PlaybackState { Stopped, Playing, Paused }
+        private PlaybackState _currentPlaybackState = PlaybackState.Stopped;
 
         // Theme colors
         private Color _panelBackColor;
@@ -665,7 +668,7 @@ namespace MacroManager
                 AutoScroll = false
             };
 
-            // Play Button (Solo icono)
+            // Play/Pause/Stop Button (Solo icono) - Cambia entre play, pausa y stop
             _btnPlay = new Button
             {
                 Text = "▶️",
@@ -675,43 +678,11 @@ namespace MacroManager
                 Font = new Font("Segoe UI", 12, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand,
-                Margin = new Padding(0, 12, 5, 12),
-                TextAlign = ContentAlignment.MiddleCenter
-            };
-            _btnPlay.FlatAppearance.BorderSize = 0;
-            _btnPlay.Click += (s, e) => PlayCurrentMacro();
-
-            // Pause Button (Solo icono)
-            _btnPause = new Button
-            {
-                Text = "||",
-                Size = new Size(45, 35),
-                BackColor = Color.FromArgb(255, 193, 7),
-                ForeColor = Color.White,
-                Font = new Font("Arial", 16, FontStyle.Bold),
-                FlatStyle = FlatStyle.Flat,
-                Cursor = Cursors.Hand,
-                Margin = new Padding(0, 12, 5, 12),
-                TextAlign = ContentAlignment.MiddleCenter
-            };
-            _btnPause.FlatAppearance.BorderSize = 0;
-            _btnPause.Click += (s, e) => PauseCurrentMacro();
-
-            // Stop Button (Solo icono)
-            _btnStop = new Button
-            {
-                Text = "⏹️",
-                Size = new Size(45, 35),
-                BackColor = Color.FromArgb(244, 67, 54),
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI", 12, FontStyle.Bold),
-                FlatStyle = FlatStyle.Flat,
-                Cursor = Cursors.Hand,
                 Margin = new Padding(0, 12, 15, 12),
                 TextAlign = ContentAlignment.MiddleCenter
             };
-            _btnStop.FlatAppearance.BorderSize = 0;
-            _btnStop.Click += (s, e) => StopCurrentMacro();
+            _btnPlay.FlatAppearance.BorderSize = 0;
+            _btnPlay.Click += (s, e) => TogglePlayPauseStop();
 
             // Loop Label
             Label lblLoop = new Label
@@ -758,8 +729,6 @@ namespace MacroManager
 
             // Add controls to panel
             controlsPanel.Controls.Add(_btnPlay);
-            controlsPanel.Controls.Add(_btnPause);
-            controlsPanel.Controls.Add(_btnStop);
             controlsPanel.Controls.Add(loopContainer);
 
             playbackPanel.Controls.Add(controlsPanel);
@@ -1343,48 +1312,56 @@ namespace MacroManager
             }
         }
 
-        private void PlayCurrentMacro()
+        private void TogglePlayPauseStop()
         {
-            if (_currentMacro?.Actions.Count == 0)
+            // Lógica simplificada - solo play/stop, sin pausa
+            if (_btnPlay.Text == "▶️")
             {
-                MessageBox.Show("No actions to play.", "Warning");
-                return;
+                // Iniciar reproducción
+                if (_currentMacro?.Actions.Count == 0)
+                {
+                    MessageBox.Show("No actions to play.", "Warning");
+                    return;
+                }
+                
+                // Detener cualquier reproducción en curso
+                if (_player.IsPlaying)
+                {
+                    _player.ForceStop();
+                }
+                
+                // Get loop count (0 = infinite loop, other values = specific count)
+                int repeatCount = (int)_numLoopCount.Value;
+                _ = _player.PlayAsync(_currentMacro, repeatCount);
+                
+                _currentPlaybackState = PlaybackState.Playing;
+                _btnPlay.Text = "⏹️"; // Cambiar a stop
+                _btnPlay.BackColor = Color.FromArgb(244, 67, 54);
             }
-
-            // Update button states
-            _btnPlay.Enabled = false;
-            _btnPause.Enabled = true;
-            _btnStop.Enabled = true;
-
-            // Get loop count (0 = infinite loop, other values = specific count)
-            int repeatCount = (int)_numLoopCount.Value;
-            _ = _player.PlayAsync(_currentMacro, repeatCount);
+            else if (_btnPlay.Text == "⏹️")
+            {
+                // Detener reproducción
+                _player.ForceStop();
+                _currentPlaybackState = PlaybackState.Stopped;
+                _btnPlay.Text = "▶️"; // Cambiar a play
+                _btnPlay.BackColor = Color.FromArgb(33, 150, 243);
+            }
         }
 
-        private void PauseCurrentMacro()
+        private void PlayCurrentMacro()
         {
-            // Toggle pause state
-            if (_btnPause.Text == "||")
-            {
-                _btnPause.Text = "▶";
-                _player.Pause();
-            }
-            else
-            {
-                _btnPause.Text = "||";
-                _player.Resume();
-            }
+            // Este método ahora se maneja a través de TogglePlayPauseStop()
+            TogglePlayPauseStop();
         }
 
         private void StopCurrentMacro()
         {
-            _player.Stop();
+            _player.ForceStop();
             
             // Reset button states
-            _btnPlay.Enabled = true;
-            _btnPause.Enabled = false;
-            _btnPause.Text = "||";
-            _btnStop.Enabled = false;
+            _currentPlaybackState = PlaybackState.Stopped;
+            _btnPlay.Text = "▶️"; // Volver a play cuando se pare
+            _btnPlay.BackColor = Color.FromArgb(33, 150, 243);
         }
 
 
@@ -1567,12 +1544,21 @@ namespace MacroManager
 
         private void OnPlaybackStarted(object sender, EventArgs e)
         {
-            MessageBox.Show("Playback started.", "Info");
+            // El estado ya se maneja en TogglePlayPauseStop()
         }
 
         private void OnPlaybackStopped(object sender, EventArgs e)
         {
-            MessageBox.Show("Playback stopped.", "Info");
+            // Actualizar estado cuando la reproducción termine
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => OnPlaybackStopped(sender, e)));
+                return;
+            }
+            
+            _currentPlaybackState = PlaybackState.Stopped;
+            _btnPlay.Text = "▶️";
+            _btnPlay.BackColor = Color.FromArgb(33, 150, 243);
         }
 
         private string PromptInput(string prompt, string defaultValue = "")

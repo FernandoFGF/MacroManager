@@ -161,6 +161,17 @@ namespace MacroManager.Services
         }
 
         /// <summary>
+        /// Force stop and cleanup
+        /// </summary>
+        public void ForceStop()
+        {
+            _isPlaying = false;
+            _isPaused = false;
+            _cancellationTokenSource?.Cancel();
+            _pauseEvent?.Set(); // Release any waiting threads
+        }
+
+        /// <summary>
         /// Executes a single action
         /// </summary>
         private void ExecuteAction(MacroAction action)

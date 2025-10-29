@@ -18,8 +18,25 @@ namespace MacroManager
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             
-            // Start the application
-            Application.Run(new MainForm());
+            // Create and initialize the MVC architecture
+            Controller controller = null;
+            try
+            {
+                controller = new Controller();
+                controller.Initialize();
+                
+                // Start the application with the main form from the view
+                Application.Run(controller.GetMainForm());
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error starting application: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                // Cleanup resources
+                controller?.Dispose();
+            }
         }
     }
 }

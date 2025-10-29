@@ -62,8 +62,8 @@ namespace MacroManager
         #region UI Setup
 
         /// <summary>
-        /// Setup the complete UI with 3-column layout
-        /// Left: TreeView, Center: Text Editor, Right: Tools
+        /// Setup the complete UI with TabControl containing 3 tabs
+        /// Tab 1: Main macros functionality, Tab 2: Shortcuts, Tab 3: Mouse
         /// </summary>
         private void SetupUI()
         {
@@ -99,7 +99,38 @@ namespace MacroManager
                 }
             };
 
-            // 4. Create horizontal splitter (Left | Center+Right)
+            // 4. Create TabControl
+            TabControl tabControl = new TabControl
+            {
+                Dock = DockStyle.Fill,
+                Name = "mainTabControl",
+                BackColor = _model.PanelBackColor,
+                ForeColor = _model.PanelForeColor,
+                Font = new Font("Segoe UI", 10, FontStyle.Regular)
+            };
+            mainContentPanel.Controls.Add(tabControl);
+
+            // 5. Create the three tabs
+            CreateMainMacrosTab(tabControl);
+            CreateShortcutsTab(tabControl);
+            CreateMouseTab(tabControl);
+
+            // Setup keyboard shortcuts
+            _mainForm.KeyDown += OnKeyDown;
+        }
+
+        /// <summary>
+        /// Create the main macros tab with all existing functionality
+        /// </summary>
+        private void CreateMainMacrosTab(TabControl tabControl)
+        {
+            TabPage mainTab = new TabPage("Macros")
+            {
+                BackColor = _model.PanelBackColor,
+                Padding = new Padding(5)
+            };
+
+            // Create horizontal splitter (Left | Center+Right)
             SplitContainer horizontalSplit = new SplitContainer
             {
                 Dock = DockStyle.Fill,
@@ -107,12 +138,12 @@ namespace MacroManager
                 Name = "horizontalSplit",
                 BackColor = _model.PanelBackColor
             };
-            mainContentPanel.Controls.Add(horizontalSplit);
+            mainTab.Controls.Add(horizontalSplit);
 
-            // 5. Left panel - TreeView (25% width)
+            // Left panel - TreeView (25% width)
             CreateMacroTree(horizontalSplit.Panel1);
 
-            // 6. Create right panel container for Center+Right
+            // Create right panel container for Center+Right
             Panel rightContainer = new Panel
             {
                 Dock = DockStyle.Fill,
@@ -121,7 +152,7 @@ namespace MacroManager
             };
             horizontalSplit.Panel2.Controls.Add(rightContainer);
 
-            // 7. Create vertical splitter (Center | Right)
+            // Create vertical splitter (Center | Right)
             SplitContainer verticalSplit = new SplitContainer
             {
                 Dock = DockStyle.Fill,
@@ -131,19 +162,19 @@ namespace MacroManager
             };
             rightContainer.Controls.Add(verticalSplit);
 
-            // 8. Center panel - Text editor with switch button
+            // Center panel - Text editor with switch button
             CreateTextEditorWithSwitch(verticalSplit.Panel1);
 
-            // 9. Right panel - Rule editor with + and - buttons
+            // Right panel - Rule editor with + and - buttons
             CreateRuleEditorWithButtons(verticalSplit.Panel2);
 
-            // 10. Create playback panel in the center, below editor
+            // Create playback panel in the center, below editor
             Panel playbackPanel = CreatePlaybackPanelControl();
             playbackPanel.Dock = DockStyle.Bottom;
             playbackPanel.Height = _model.PlaybackPanelHeight;
             verticalSplit.Panel1.Controls.Add(playbackPanel); // Add to center panel only
 
-            // 11. Configure splitter distances after all controls are created
+            // Configure splitter distances after all controls are created
             _mainForm.Load += (s, e) => {
                 // Set horizontal split based on configuration
                 horizontalSplit.SplitterDistance = Math.Max(_model.MinimumTreeViewWidth, (int)(horizontalSplit.Width * _model.TreeViewPercentage));
@@ -152,8 +183,59 @@ namespace MacroManager
                 verticalSplit.SplitterDistance = Math.Max(_model.MinimumEditorWidth, (int)(verticalSplit.Width * _model.EditorPercentage));
             };
 
-            // Setup keyboard shortcuts
-            _mainForm.KeyDown += OnKeyDown;
+            tabControl.TabPages.Add(mainTab);
+        }
+
+        /// <summary>
+        /// Create the shortcuts tab (empty for now)
+        /// </summary>
+        private void CreateShortcutsTab(TabControl tabControl)
+        {
+            TabPage shortcutsTab = new TabPage("Shortcuts")
+            {
+                BackColor = _model.PanelBackColor,
+                Padding = new Padding(20)
+            };
+
+            // Create a placeholder label
+            Label placeholderLabel = new Label
+            {
+                Text = "🚀 Shortcuts\n\nEsta pestaña estará disponible próximamente.\nAquí podrás configurar atajos de teclado personalizados.",
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 12, FontStyle.Regular),
+                ForeColor = _model.PanelForeColor,
+                BackColor = _model.PanelBackColor,
+                TextAlign = ContentAlignment.MiddleCenter
+            };
+            shortcutsTab.Controls.Add(placeholderLabel);
+
+            tabControl.TabPages.Add(shortcutsTab);
+        }
+
+        /// <summary>
+        /// Create the mouse tab (empty for now)
+        /// </summary>
+        private void CreateMouseTab(TabControl tabControl)
+        {
+            TabPage mouseTab = new TabPage("Mouse")
+            {
+                BackColor = _model.PanelBackColor,
+                Padding = new Padding(20)
+            };
+
+            // Create a placeholder label
+            Label placeholderLabel = new Label
+            {
+                Text = "🖱️ Mouse\n\nEsta pestaña estará disponible próximamente.\nAquí podrás configurar acciones específicas del ratón.",
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 12, FontStyle.Regular),
+                ForeColor = _model.PanelForeColor,
+                BackColor = _model.PanelBackColor,
+                TextAlign = ContentAlignment.MiddleCenter
+            };
+            mouseTab.Controls.Add(placeholderLabel);
+
+            tabControl.TabPages.Add(mouseTab);
         }
 
         /// <summary>

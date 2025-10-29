@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using MacroManager.Models;
+using MacroManager.Services;
+using MacroManager.Commands;
 
 namespace MacroManager
 {
@@ -13,16 +15,18 @@ namespace MacroManager
     /// </summary>
     public class Controller
     {
-        private Model _model;
-        private View _view;
+        private readonly Model _model;
+        private readonly View _view;
+        private readonly CommandManager _commandManager;
 
         /// <summary>
-        /// Constructor
+        /// Constructor con inyección de dependencias
         /// </summary>
-        public Controller()
+        public Controller(IMacroRecorder recorder, IMacroPlayer player, ISettingsManager settingsManager, UIConfigurationService uiConfig)
         {
-            _model = new Model();
+            _model = new Model(recorder, player, settingsManager, uiConfig);
             _view = new View(this, _model);
+            _commandManager = new CommandManager();
             
             // Subscribe to model events
             _model.ActionRecorded += OnActionRecorded;
@@ -60,7 +64,8 @@ namespace MacroManager
         /// </summary>
         public void CreateNewMacro()
         {
-            _model.CreateNewMacro();
+            var command = new CreateMacroCommand(_model);
+            _commandManager.ExecuteCommand(command);
         }
 
         /// <summary>
@@ -225,7 +230,8 @@ namespace MacroManager
                 return;
             }
 
-            _model.AddNewAction();
+            var command = new AddActionCommand(_model);
+            _commandManager.ExecuteCommand(command);
         }
 
         /// <summary>
@@ -239,7 +245,8 @@ namespace MacroManager
                 return;
             }
 
-            _model.DeleteAction(actionIndex);
+            var command = new DeleteActionCommand(_model, actionIndex);
+            _commandManager.ExecuteCommand(command);
         }
 
         /// <summary>
@@ -344,12 +351,26 @@ namespace MacroManager
 
         public void UndoAction()
         {
-            MessageBox.Show("Funcionalidad de deshacer no disponible en la interfaz de botones", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            if (_commandManager.CanUndo)
+            {
+                _commandManager.Undo();
+            }
+            else
+            {
+                MessageBox.Show("No hay acciones para deshacer", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
         }
 
         public void RedoAction()
         {
-            MessageBox.Show("Funcionalidad de rehacer no disponible en la interfaz de botones", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            if (_commandManager.CanRedo)
+            {
+                _commandManager.Redo();
+            }
+            else
+            {
+                MessageBox.Show("No hay acciones para rehacer", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
         }
 
         public void CutAction()

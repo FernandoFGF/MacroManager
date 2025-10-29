@@ -1,14 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using Microsoft.Win32;
 using MacroManager.Models;
 using MacroManager.Services;
-using Newtonsoft.Json.Linq;
 
 namespace MacroManager
 {
@@ -18,32 +15,15 @@ namespace MacroManager
     /// </summary>
     public class Model
     {
-        // Services
-        private MacroRecorder _recorder;
-        private MacroPlayer _player;
-        private SettingsManager _settingsManager;
+        // Services - ahora inyectados
+        private readonly IMacroRecorder _recorder;
+        private readonly IMacroPlayer _player;
+        private readonly ISettingsManager _settingsManager;
+        private readonly UIConfigurationService _uiConfig;
 
         // Data
         private List<MacroConfig> _loadedMacros;
         private MacroConfig _currentMacro;
-
-        // UI Configuration
-        private int _minWindowWidth = 1000;
-        private int _minWindowHeight = 700;
-        private int _defaultWindowWidth = 1200;
-        private int _defaultWindowHeight = 800;
-        private double _treeViewPercentage = 0.25;
-        private double _editorPercentage = 0.6666;
-        private int _playbackPanelHeight = 80;
-        private int _minimumTreeViewWidth = 200;
-        private int _minimumEditorWidth = 400;
-
-        // Theme colors
-        private Color _panelBackColor;
-        private Color _panelForeColor;
-        private Color _accentColor;
-        private Color _cardBackColor;
-        private Color _borderColor;
 
         // Events
         public event EventHandler<MacroAction> ActionRecorded;
@@ -53,13 +33,16 @@ namespace MacroManager
         public event EventHandler CurrentMacroChanged;
 
         /// <summary>
-        /// Constructor
+        /// Constructor con inyección de dependencias
         /// </summary>
-        public Model()
+        public Model(IMacroRecorder recorder, IMacroPlayer player, ISettingsManager settingsManager, UIConfigurationService uiConfig)
         {
+            _recorder = recorder ?? throw new ArgumentNullException(nameof(recorder));
+            _player = player ?? throw new ArgumentNullException(nameof(player));
+            _settingsManager = settingsManager ?? throw new ArgumentNullException(nameof(settingsManager));
+            _uiConfig = uiConfig ?? throw new ArgumentNullException(nameof(uiConfig));
+
             InitializeServices();
-            LoadUIConfiguration();
-            ApplySystemTheme();
             LoadMacros();
         }
 
@@ -70,23 +53,23 @@ namespace MacroManager
         public bool IsRecording => _recorder?.IsRecording ?? false;
         public bool IsPlaying => _player?.IsPlaying ?? false;
 
-        // UI Configuration Properties
-        public int MinWindowWidth => _minWindowWidth;
-        public int MinWindowHeight => _minWindowHeight;
-        public int DefaultWindowWidth => _defaultWindowWidth;
-        public int DefaultWindowHeight => _defaultWindowHeight;
-        public double TreeViewPercentage => _treeViewPercentage;
-        public double EditorPercentage => _editorPercentage;
-        public int PlaybackPanelHeight => _playbackPanelHeight;
-        public int MinimumTreeViewWidth => _minimumTreeViewWidth;
-        public int MinimumEditorWidth => _minimumEditorWidth;
+        // UI Configuration Properties - delegadas al servicio
+        public int MinWindowWidth => _uiConfig.MinWindowWidth;
+        public int MinWindowHeight => _uiConfig.MinWindowHeight;
+        public int DefaultWindowWidth => _uiConfig.DefaultWindowWidth;
+        public int DefaultWindowHeight => _uiConfig.DefaultWindowHeight;
+        public double TreeViewPercentage => _uiConfig.TreeViewPercentage;
+        public double EditorPercentage => _uiConfig.EditorPercentage;
+        public int PlaybackPanelHeight => _uiConfig.PlaybackPanelHeight;
+        public int MinimumTreeViewWidth => _uiConfig.MinimumTreeViewWidth;
+        public int MinimumEditorWidth => _uiConfig.MinimumEditorWidth;
 
-        // Theme Properties
-        public Color PanelBackColor => _panelBackColor;
-        public Color PanelForeColor => _panelForeColor;
-        public Color AccentColor => _accentColor;
-        public Color CardBackColor => _cardBackColor;
-        public Color BorderColor => _borderColor;
+        // Theme Properties - delegadas al servicio
+        public Color PanelBackColor => _uiConfig.PanelBackColor;
+        public Color PanelForeColor => _uiConfig.PanelForeColor;
+        public Color AccentColor => _uiConfig.AccentColor;
+        public Color CardBackColor => _uiConfig.CardBackColor;
+        public Color BorderColor => _uiConfig.BorderColor;
 
         #endregion
 
@@ -97,150 +80,11 @@ namespace MacroManager
         /// </summary>
         private void InitializeServices()
         {
-            _settingsManager = new SettingsManager();
-            _recorder = new MacroRecorder();
-            _player = new MacroPlayer();
-
             _recorder.ActionRecorded += OnActionRecorded;
             _player.PlaybackStarted += OnPlaybackStarted;
             _player.PlaybackStopped += OnPlaybackStopped;
         }
 
-        /// <summary>
-        /// Apply retro green LCD theme colors
-        /// </summary>
-        private void ApplySystemTheme()
-        {
-            // Retro green LCD color scheme (ignoring system theme)
-            // Dark green background with bright LCD green text
-            
-            // Very dark green background (almost black with green tint)
-            // this.BackColor = Color.FromArgb(12, 32, 12);
-            
-            // Bright LCD green text
-            // this.ForeColor = Color.FromArgb(0, 255, 0);
-            
-            // Panel backgrounds - slightly lighter dark green
-            _panelBackColor = Color.FromArgb(15, 40, 15);
-            
-            // Panel text - bright green
-            _panelForeColor = Color.FromArgb(0, 255, 0);
-            
-            // Accent color - lime green for buttons
-            _accentColor = Color.FromArgb(50, 205, 50);
-            
-            // Card background - dark green with slight variation
-            _cardBackColor = Color.FromArgb(18, 48, 18);
-            
-            // Border color - darker green
-            _borderColor = Color.FromArgb(34, 100, 34);
-        }
-
-        /// <summary>
-        /// Check if Windows system theme is set to dark mode
-        /// </summary>
-        private bool IsSystemDarkMode()
-        {
-            try
-            {
-                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"))
-                {
-                    if (key != null)
-                    {
-                        object value = key.GetValue("AppsUseLightTheme");
-                        if (value != null && value is int intValue)
-                        {
-                            return intValue == 0; // 0 = Dark mode, 1 = Light mode
-                        }
-                    }
-                }
-            }
-            catch
-            {
-                // If unable to read registry, default to light mode
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Load UI configuration from uiconfig.json
-        /// Searches in multiple locations: executable directory, project directory
-        /// </summary>
-        private void LoadUIConfiguration()
-        {
-            try
-            {
-                // Try multiple locations for the config file
-                string[] possiblePaths = new string[]
-                {
-                    // First: Next to the executable (from bin/Release/)
-                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "uiconfig.json"),
-                    // Second: In the project root (for development)
-                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "uiconfig.json"),
-                    // Third: In the MacroManager folder (source location)
-                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "MacroManager", "uiconfig.json"),
-                    // Fourth: Try finding it relative to source
-                    "uiconfig.json"
-                };
-
-                string configPath = null;
-                foreach (var path in possiblePaths)
-                {
-                    string fullPath = Path.GetFullPath(path);
-                    if (File.Exists(fullPath))
-                    {
-                        configPath = fullPath;
-                        break;
-                    }
-                }
-
-                if (configPath != null && File.Exists(configPath))
-                {
-                    string jsonContent = File.ReadAllText(configPath);
-                    JObject config = JObject.Parse(jsonContent);
-
-                    // Load window settings
-                    if (config["window"] != null)
-                    {
-                        _minWindowWidth = config["window"]["minWidth"]?.Value<int>() ?? _minWindowWidth;
-                        _minWindowHeight = config["window"]["minHeight"]?.Value<int>() ?? _minWindowHeight;
-                        _defaultWindowWidth = config["window"]["defaultWidth"]?.Value<int>() ?? _defaultWindowWidth;
-                        _defaultWindowHeight = config["window"]["defaultHeight"]?.Value<int>() ?? _defaultWindowHeight;
-                    }
-
-                    // Load layout settings
-                    if (config["layout"] != null)
-                    {
-                        double treePercent = config["layout"]["treeViewPercentage"]?.Value<double>() ?? _treeViewPercentage;
-                        _treeViewPercentage = treePercent / 100.0; // Convert percentage to decimal
-
-                        double editorPercent = config["layout"]["editorPercentage"]?.Value<double>() ?? _editorPercentage;
-                        _editorPercentage = editorPercent / 100.0; // Convert percentage to decimal
-
-                        _playbackPanelHeight = config["layout"]["playbackPanelHeight"]?.Value<int>() ?? _playbackPanelHeight;
-                    }
-
-                    // Load size constraints
-                    if (config["sizes"] != null)
-                    {
-                        _minimumTreeViewWidth = config["sizes"]["minimumTreeViewWidth"]?.Value<int>() ?? _minimumTreeViewWidth;
-                        _minimumEditorWidth = config["sizes"]["minimumEditorWidth"]?.Value<int>() ?? _minimumEditorWidth;
-                    }
-
-                    System.Diagnostics.Debug.WriteLine($"✓ Config loaded from: {configPath}");
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"⚠ Config file not found. Using default settings.");
-                    System.Diagnostics.Debug.WriteLine($"Searched in:\n  - {string.Join("\n  - ", possiblePaths.Select(p => Path.GetFullPath(p)))}");
-                }
-            }
-            catch (Exception ex)
-            {
-                // If there's an error loading config, use defaults
-                System.Diagnostics.Debug.WriteLine($"✗ Error loading config: {ex.Message}");
-            }
-        }
 
         /// <summary>
         /// Load all macros and display UI
@@ -296,6 +140,9 @@ namespace MacroManager
         public bool SaveCurrentMacro()
         {
             if (_currentMacro == null)
+                return false;
+
+            if (!ValidateMacro(_currentMacro))
                 return false;
 
             _currentMacro.LastModified = DateTime.Now;
@@ -392,8 +239,11 @@ namespace MacroManager
                 DelayMs = 0
             };
 
-            _currentMacro.Actions.Add(newAction);
-            CurrentMacroChanged?.Invoke(this, EventArgs.Empty);
+            if (ValidateAction(newAction))
+            {
+                _currentMacro.Actions.Add(newAction);
+                CurrentMacroChanged?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         /// <summary>
@@ -487,6 +337,64 @@ namespace MacroManager
         public void StopPlayback()
         {
             _player.ForceStop();
+        }
+
+        #endregion
+
+        #region Public Event Triggers
+
+        /// <summary>
+        /// Notifica que la macro actual ha cambiado
+        /// </summary>
+        public void NotifyCurrentMacroChanged()
+        {
+            CurrentMacroChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Notifica que las macros han cambiado
+        /// </summary>
+        public void NotifyMacrosChanged()
+        {
+            MacrosChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region Validation Methods
+
+        /// <summary>
+        /// Valida una configuración de macro
+        /// </summary>
+        public bool ValidateMacro(MacroConfig macro)
+        {
+            if (macro == null)
+                return false;
+            
+            if (string.IsNullOrWhiteSpace(macro.Name))
+                return false;
+                
+            if (macro.Actions == null || macro.Actions.Count == 0)
+                return false;
+                
+            return true;
+        }
+
+        /// <summary>
+        /// Valida una acción de macro
+        /// </summary>
+        public bool ValidateAction(MacroAction action)
+        {
+            if (action == null)
+                return false;
+                
+            if (action.DelayMs < 0)
+                return false;
+                
+            if (action.TimestampMs < 0)
+                return false;
+                
+            return true;
         }
 
         #endregion

@@ -1,5 +1,6 @@
 using System;
 using System.Windows.Forms;
+using MacroManager.Services;
 
 namespace MacroManager
 {
@@ -18,11 +19,18 @@ namespace MacroManager
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             
-            // Create and initialize the MVC architecture
+            // Create and initialize the MVC architecture with dependency injection
             Controller controller = null;
             try
             {
-                controller = new Controller();
+                // Create service instances
+                var settingsManager = new SettingsManager();
+                var macroRecorder = new MacroRecorder();
+                var macroPlayer = new MacroPlayer();
+                var uiConfigService = new UIConfigurationService();
+
+                // Create controller with injected dependencies
+                controller = new Controller(macroRecorder, macroPlayer, settingsManager, uiConfigService);
                 controller.Initialize();
                 
                 // Start the application with the main form from the view

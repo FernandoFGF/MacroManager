@@ -11,7 +11,7 @@ namespace MacroManager.Services
     /// Service to record keyboard and mouse actions
     /// Uses Windows global hooks to capture events
     /// </summary>
-    public class MacroRecorder
+    public class MacroRecorder : IMacroRecorder
     {
         // Windows hooks for keyboard and mouse
         private const int WH_KEYBOARD_LL = 13;

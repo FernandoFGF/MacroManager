@@ -11,7 +11,7 @@ namespace MacroManager.Services
     /// Service for saving and loading configurations and macros
     /// Uses JSON files for data persistence
     /// </summary>
-    public class SettingsManager
+    public class SettingsManager : ISettingsManager
     {
         private readonly string _macrosDirectory;
         private readonly string _settingsFilePath;

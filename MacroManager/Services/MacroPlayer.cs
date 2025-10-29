@@ -11,7 +11,7 @@ namespace MacroManager.Services
     /// Service to play recorded macros
     /// Simulates keyboard and mouse events according to saved sequence
     /// </summary>
-    public class MacroPlayer
+    public class MacroPlayer : IMacroPlayer
     {
         private bool _isPlaying;
         private bool _isPaused;

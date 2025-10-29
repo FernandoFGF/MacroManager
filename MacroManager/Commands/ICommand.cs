@@ -3,28 +3,28 @@ using System;
 namespace MacroManager.Commands
 {
     /// <summary>
-    /// Interface para el patrón Command
-    /// Permite encapsular operaciones y soportar deshacer/rehacer
+    /// Interface for the Command pattern
+    /// Allows encapsulating operations and supporting undo/redo
     /// </summary>
     public interface ICommand
     {
         /// <summary>
-        /// Ejecuta el comando
+        /// Executes the command
         /// </summary>
         void Execute();
 
         /// <summary>
-        /// Deshace el comando
+        /// Undoes the command
         /// </summary>
         void Undo();
 
         /// <summary>
-        /// Indica si el comando puede ser deshecho
+        /// Indicates if the command can be undone
         /// </summary>
         bool CanUndo { get; }
 
         /// <summary>
-        /// Descripción del comando para mostrar en la UI
+        /// Command description to display in the UI
         /// </summary>
         string Description { get; }
     }

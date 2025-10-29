@@ -8,8 +8,8 @@ using MacroManager.Models;
 namespace MacroManager
 {
     /// <summary>
-    /// Vista principal para la aplicación MacroManager
-    /// Maneja toda la lógica de UI y presentación
+    /// Main view for the MacroManager application
+    /// Handles all UI logic and presentation
     /// </summary>
     public class View : IDisposable
     {
@@ -79,7 +79,7 @@ namespace MacroManager
             _mainForm.MainMenuStrip = menu;
             _mainForm.Controls.Add(menu);
 
-            // 2. Create main content area - NO usar Dock.Fill para evitar superposición
+            // 2. Create main content area - DO NOT use Dock.Fill to avoid overlap
             Panel mainContentPanel = new Panel
             {
                 Name = "mainContentPanel",
@@ -87,7 +87,7 @@ namespace MacroManager
             };
             _mainForm.Controls.Add(mainContentPanel);
 
-            // 3. Ajustar el tamaño del panel principal para que no se superponga con el menú
+            // 3. Adjust the main panel size so it doesn't overlap with the menu
             _mainForm.Load += (s, e) => {
                 int menuHeight = menu.Height;
                 mainContentPanel.Location = new Point(0, menuHeight);
@@ -202,7 +202,7 @@ namespace MacroManager
             // Create a placeholder label
             Label placeholderLabel = new Label
             {
-                Text = "🚀 Shortcuts\n\nEsta pestaña estará disponible próximamente.\nAquí podrás configurar atajos de teclado personalizados.",
+                Text = "🚀 Shortcuts\n\nThis tab will be available soon.\nHere you can configure custom keyboard shortcuts.",
                 Dock = DockStyle.Fill,
                 Font = new Font("Segoe UI", 12, FontStyle.Regular),
                 ForeColor = _model.PanelForeColor,
@@ -228,7 +228,7 @@ namespace MacroManager
             // Create a placeholder label
             Label placeholderLabel = new Label
             {
-                Text = "🖱️ Mouse\n\nEsta pestaña estará disponible próximamente.\nAquí podrás configurar acciones específicas del ratón.",
+                Text = "🖱️ Mouse\n\nThis tab will be available soon.\nHere you can configure specific mouse actions.",
                 Dock = DockStyle.Fill,
                 Font = new Font("Segoe UI", 12, FontStyle.Regular),
                 ForeColor = _model.PanelForeColor,
@@ -344,7 +344,7 @@ namespace MacroManager
             };
 
             // Rename macro
-            ToolStripMenuItem renameItem = new ToolStripMenuItem("✏️ Renombrar", null, (s, e) =>
+            ToolStripMenuItem renameItem = new ToolStripMenuItem("✏️ Rename", null, (s, e) =>
             {
                 if (_macroTreeView.SelectedNode?.Tag is MacroConfig macro)
                 {
@@ -356,7 +356,7 @@ namespace MacroManager
             contextMenu.Items.Add(new ToolStripSeparator());
 
             // Duplicate macro
-            ToolStripMenuItem duplicateItem = new ToolStripMenuItem("📋 Duplicar", null, (s, e) =>
+            ToolStripMenuItem duplicateItem = new ToolStripMenuItem("📋 Duplicate", null, (s, e) =>
             {
                 if (_macroTreeView.SelectedNode?.Tag is MacroConfig macro)
                 {
@@ -366,7 +366,7 @@ namespace MacroManager
             contextMenu.Items.Add(duplicateItem);
 
             // Export macro
-            ToolStripMenuItem exportItem = new ToolStripMenuItem("📤 Exportar", null, (s, e) =>
+            ToolStripMenuItem exportItem = new ToolStripMenuItem("📤 Export", null, (s, e) =>
             {
                 if (_macroTreeView.SelectedNode?.Tag is MacroConfig macro)
                 {
@@ -378,7 +378,7 @@ namespace MacroManager
             contextMenu.Items.Add(new ToolStripSeparator());
 
             // Open file location
-            ToolStripMenuItem openLocationItem = new ToolStripMenuItem("📁 Abrir ubicación", null, (s, e) =>
+            ToolStripMenuItem openLocationItem = new ToolStripMenuItem("📁 Open Location", null, (s, e) =>
             {
                 if (_macroTreeView.SelectedNode?.Tag is MacroConfig macro)
                 {
@@ -388,7 +388,7 @@ namespace MacroManager
             contextMenu.Items.Add(openLocationItem);
 
             // Show properties
-            ToolStripMenuItem propertiesItem = new ToolStripMenuItem("ℹ️ Propiedades", null, (s, e) =>
+            ToolStripMenuItem propertiesItem = new ToolStripMenuItem("ℹ️ Properties", null, (s, e) =>
             {
                 if (_macroTreeView.SelectedNode?.Tag is MacroConfig macro)
                 {
@@ -400,7 +400,7 @@ namespace MacroManager
             contextMenu.Items.Add(new ToolStripSeparator());
 
             // Refresh macros
-            ToolStripMenuItem refreshItem = new ToolStripMenuItem("🔄 Actualizar lista", null, (s, e) =>
+            ToolStripMenuItem refreshItem = new ToolStripMenuItem("🔄 Refresh List", null, (s, e) =>
             {
                 _controller.RefreshMacros();
             });
@@ -409,7 +409,7 @@ namespace MacroManager
             contextMenu.Items.Add(new ToolStripSeparator());
 
             // Delete macro
-            ToolStripMenuItem deleteItem = new ToolStripMenuItem("🗑️ Eliminar", null, (s, e) =>
+            ToolStripMenuItem deleteItem = new ToolStripMenuItem("🗑️ Delete", null, (s, e) =>
             {
                 if (_macroTreeView.SelectedNode?.Tag is MacroConfig macro)
                 {
@@ -957,7 +957,7 @@ namespace MacroManager
             
             var button = new Button
             {
-                Text = $"#{index + 1}  {actionType}\nTecla: {keyDisplay}\nEspera: {action.DelayMs}ms",
+                Text = $"#{index + 1}  {actionType}\nKey: {keyDisplay}\nDelay: {action.DelayMs}ms",
                 Location = new Point(10, yPosition),
                 Size = new Size(_actionsPanel.Width - 50, 70),
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,

@@ -4,7 +4,7 @@ using MacroManager.Models;
 namespace MacroManager.Commands
 {
     /// <summary>
-    /// Comando para eliminar una acción de la macro actual
+    /// Command to delete an action from the current macro
     /// </summary>
     public class DeleteActionCommand : ICommand
     {
@@ -13,7 +13,7 @@ namespace MacroManager.Commands
         private MacroAction _deletedAction;
 
         public bool CanUndo => true;
-        public string Description => "Eliminar acción";
+        public string Description => "Delete action";
 
         public DeleteActionCommand(Model model, int actionIndex)
         {

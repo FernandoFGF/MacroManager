@@ -4,58 +4,58 @@ using System.Collections.Generic;
 namespace MacroManager.Models
 {
     /// <summary>
-    /// Modelo de datos para una configuración de macro
-    /// Representa una secuencia de acciones guardadas que pueden ser reproducidas
+    /// Data model for a macro configuration
+    /// Represents a sequence of saved actions that can be played back
     /// </summary>
     public class MacroConfig
     {
         /// <summary>
-        /// Identificador único de la macro
+        /// Unique identifier for the macro
         /// </summary>
         public Guid Id { get; set; }
 
         /// <summary>
-        /// Nombre descriptivo de la macro
+        /// Descriptive name for the macro
         /// </summary>
         public string Name { get; set; }
 
         /// <summary>
-        /// Descripción opcional de lo que hace la macro
+        /// Optional description of what the macro does
         /// </summary>
         public string Description { get; set; }
 
         /// <summary>
-        /// Lista de acciones (eventos) que componen la macro
+        /// List of actions (events) that make up the macro
         /// </summary>
         public List<MacroAction> Actions { get; set; }
 
         /// <summary>
-        /// Tecla de atajo para ejecutar esta macro
+        /// Hotkey to execute this macro
         /// </summary>
         public string Hotkey { get; set; }
 
         /// <summary>
-        /// Indica si la macro está habilitada
+        /// Indicates if the macro is enabled
         /// </summary>
         public bool IsEnabled { get; set; }
 
         /// <summary>
-        /// Fecha de creación de la macro
+        /// Macro creation date
         /// </summary>
         public DateTime CreatedDate { get; set; }
 
         /// <summary>
-        /// Fecha de última modificación
+        /// Last modification date
         /// </summary>
         public DateTime LastModified { get; set; }
 
         /// <summary>
-        /// Fecha de último uso
+        /// Last used date
         /// </summary>
         public DateTime LastUsed { get; set; }
 
         /// <summary>
-        /// Constructor por defecto
+        /// Default constructor
         /// </summary>
         public MacroConfig()
         {
@@ -72,54 +72,54 @@ namespace MacroManager.Models
     }
 
     /// <summary>
-    /// Representa una acción individual dentro de una macro
+    /// Represents an individual action within a macro
     /// </summary>
     public class MacroAction
     {
         /// <summary>
-        /// Tipo de acción (Click, KeyPress, KeyDown, KeyUp, MouseMove, Delay)
+        /// Action type (Click, KeyPress, KeyDown, KeyUp, MouseMove, Delay)
         /// </summary>
         public ActionType Type { get; set; }
 
         /// <summary>
-        /// Código de tecla o botón del mouse
+        /// Key code or mouse button
         /// </summary>
         public int KeyCode { get; set; }
 
         /// <summary>
-        /// Coordenada X para acciones de mouse
+        /// X coordinate for mouse actions
         /// </summary>
         public int X { get; set; }
 
         /// <summary>
-        /// Coordenada Y para acciones de mouse
+        /// Y coordinate for mouse actions
         /// </summary>
         public int Y { get; set; }
 
         /// <summary>
-        /// Tiempo de espera en milisegundos (para delays)
+        /// Wait time in milliseconds (for delays)
         /// </summary>
         public int DelayMs { get; set; }
 
         /// <summary>
-        /// Timestamp relativo desde el inicio de la grabación
+        /// Relative timestamp from the start of recording
         /// </summary>
         public long TimestampMs { get; set; }
     }
 
     /// <summary>
-    /// Enumeración de tipos de acciones posibles
+    /// Enumeration of possible action types
     /// </summary>
     public enum ActionType
     {
-        KeyDown,        // Tecla presionada
-        KeyUp,          // Tecla liberada
-        KeyPress,       // Tecla presionada y liberada
-        MouseLeftDown,  // Botón izquierdo presionado
-        MouseLeftUp,    // Botón izquierdo liberado
-        MouseRightDown, // Botón derecho presionado
-        MouseRightUp,   // Botón derecho liberado
-        MouseMove,      // Movimiento del mouse
-        Delay           // Pausa/espera
+        KeyDown,        // Key pressed
+        KeyUp,          // Key released
+        KeyPress,       // Key pressed and released
+        MouseLeftDown,  // Left button pressed
+        MouseLeftUp,    // Left button released
+        MouseRightDown, // Right button pressed
+        MouseRightUp,   // Right button released
+        MouseMove,      // Mouse movement
+        Delay           // Pause/wait
     }
 }

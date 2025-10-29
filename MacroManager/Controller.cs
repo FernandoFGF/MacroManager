@@ -10,8 +10,8 @@ using MacroManager.Commands;
 namespace MacroManager
 {
     /// <summary>
-    /// Controlador principal para la aplicación MacroManager
-    /// Maneja toda la lógica de negocio y coordina entre Model y View
+    /// Main controller for the MacroManager application
+    /// Handles all business logic and coordinates between Model and View
     /// </summary>
     public class Controller
     {
@@ -20,7 +20,7 @@ namespace MacroManager
         private readonly CommandManager _commandManager;
 
         /// <summary>
-        /// Constructor con inyección de dependencias
+        /// Constructor with dependency injection
         /// </summary>
         public Controller(IMacroRecorder recorder, IMacroPlayer player, ISettingsManager settingsManager, UIConfigurationService uiConfig)
         {
@@ -298,14 +298,14 @@ namespace MacroManager
         /// </summary>
         public void ShowMacroProperties(MacroConfig macro)
         {
-            string properties = $"Nombre: {macro.Name}\n" +
-                              $"Acciones: {macro.Actions.Count}\n" +
-                              $"Creado: {macro.CreatedDate:dd/MM/yyyy HH:mm:ss}\n" +
-                              $"Modificado: {macro.LastModified:dd/MM/yyyy HH:mm:ss}\n" +
-                              $"Último uso: {macro.LastUsed:dd/MM/yyyy HH:mm:ss}\n" +
+            string properties = $"Name: {macro.Name}\n" +
+                              $"Actions: {macro.Actions.Count}\n" +
+                              $"Created: {macro.CreatedDate:dd/MM/yyyy HH:mm:ss}\n" +
+                              $"Modified: {macro.LastModified:dd/MM/yyyy HH:mm:ss}\n" +
+                              $"Last used: {macro.LastUsed:dd/MM/yyyy HH:mm:ss}\n" +
                               $"ID: {macro.Id}";
 
-            MessageBox.Show(properties, "Propiedades de la Macro", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(properties, "Macro Properties", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         #endregion
@@ -430,11 +430,11 @@ namespace MacroManager
                 { 
                     WriteIndented = true 
                 });
-                MessageBox.Show(json, "JSON de la Macro", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(json, "Macro JSON", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else
             {
-                MessageBox.Show("No hay macro cargada para mostrar JSON", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("No macro loaded to show JSON", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
@@ -450,7 +450,7 @@ namespace MacroManager
             }
             else
             {
-                MessageBox.Show("No hay acciones para deshacer", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("No actions to undo", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
@@ -462,28 +462,28 @@ namespace MacroManager
             }
             else
             {
-                MessageBox.Show("No hay acciones para rehacer", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("No actions to redo", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
         public void CutAction()
         {
-            MessageBox.Show("Funcionalidad de cortar no disponible en la interfaz de botones", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("Cut functionality not available in button interface", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         public void CopyAction()
         {
-            MessageBox.Show("Funcionalidad de copiar no disponible en la interfaz de botones", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("Copy functionality not available in button interface", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         public void PasteAction()
         {
-            MessageBox.Show("Funcionalidad de pegar no disponible en la interfaz de botones", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("Paste functionality not available in button interface", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         public void SelectAllAction()
         {
-            MessageBox.Show("Funcionalidad de seleccionar todo no disponible en la interfaz de botones", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("Select all functionality not available in button interface", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         #endregion

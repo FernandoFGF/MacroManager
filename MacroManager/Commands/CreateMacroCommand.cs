@@ -4,7 +4,7 @@ using MacroManager.Models;
 namespace MacroManager.Commands
 {
     /// <summary>
-    /// Comando para crear una nueva macro
+    /// Command to create a new macro
     /// </summary>
     public class CreateMacroCommand : ICommand
     {
@@ -12,7 +12,7 @@ namespace MacroManager.Commands
         private MacroConfig _previousMacro;
 
         public bool CanUndo => true;
-        public string Description => "Crear nueva macro";
+        public string Description => "Create new macro";
 
         public CreateMacroCommand(Model model)
         {

@@ -166,10 +166,10 @@ namespace MacroManager.Services
         }
 
         /// <summary>
-        /// Carga una macro desde un archivo
+        /// Loads a macro from a file
         /// </summary>
-        /// <param name="macroId">ID de la macro a cargar</param>
-        /// <returns>La macro cargada o null si no existe</returns>
+        /// <param name="macroId">ID of the macro to load</param>
+        /// <returns>The loaded macro or null if it doesn't exist</returns>
         public MacroConfig LoadMacro(Guid macroId)
         {
             try
@@ -200,15 +200,15 @@ namespace MacroManager.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error al cargar macro: {ex.Message}");
+                Console.WriteLine($"Error loading macro: {ex.Message}");
                 return null;
             }
         }
 
         /// <summary>
-        /// Carga todas las macros guardadas
+        /// Loads all saved macros
         /// </summary>
-        /// <returns>Lista de macros</returns>
+        /// <returns>List of macros</returns>
         public List<MacroConfig> LoadAllMacros()
         {
             var macros = new List<MacroConfig>();
@@ -234,23 +234,23 @@ namespace MacroManager.Services
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error al cargar {Path.GetFileName(file)}: {ex.Message}");
+                        Console.WriteLine($"Error loading {Path.GetFileName(file)}: {ex.Message}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error al cargar macros: {ex.Message}");
+                Console.WriteLine($"Error loading macros: {ex.Message}");
             }
 
             return macros.OrderBy(m => m.Name).ToList();
         }
 
         /// <summary>
-        /// Elimina una macro
+        /// Deletes a macro
         /// </summary>
-        /// <param name="macroId">ID de la macro a eliminar</param>
-        /// <returns>True si se eliminó correctamente</returns>
+        /// <param name="macroId">ID of the macro to delete</param>
+        /// <returns>True if deleted successfully</returns>
         public bool DeleteMacro(Guid macroId)
         {
             try
@@ -282,17 +282,17 @@ namespace MacroManager.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error al eliminar macro: {ex.Message}");
+                Console.WriteLine($"Error deleting macro: {ex.Message}");
                 return false;
             }
         }
 
         /// <summary>
-        /// Exporta una macro a un archivo específico
+        /// Exports a macro to a specific file
         /// </summary>
-        /// <param name="macro">Macro a exportar</param>
-        /// <param name="filePath">Ruta del archivo destino</param>
-        /// <returns>True si se exportó correctamente</returns>
+        /// <param name="macro">Macro to export</param>
+        /// <param name="filePath">Destination file path</param>
+        /// <returns>True if exported successfully</returns>
         public bool ExportMacro(MacroConfig macro, string filePath)
         {
             try
@@ -303,16 +303,16 @@ namespace MacroManager.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error al exportar macro: {ex.Message}");
+                Console.WriteLine($"Error exporting macro: {ex.Message}");
                 return false;
             }
         }
 
         /// <summary>
-        /// Importa una macro desde un archivo
+        /// Imports a macro from a file
         /// </summary>
-        /// <param name="filePath">Ruta del archivo a importar</param>
-        /// <returns>La macro importada o null si falla</returns>
+        /// <param name="filePath">Path of the file to import</param>
+        /// <returns>The imported macro or null if it fails</returns>
         public MacroConfig ImportMacro(string filePath)
         {
             try
@@ -325,7 +325,7 @@ namespace MacroManager.Services
 
                 if (macro != null)
                 {
-                    // Generar nuevo ID para evitar conflictos
+                    // Generate new ID to avoid conflicts
                     macro.Id = Guid.NewGuid();
                     macro.CreatedDate = DateTime.Now;
                     macro.LastModified = DateTime.Now;
@@ -337,16 +337,16 @@ namespace MacroManager.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error al importar macro: {ex.Message}");
+                Console.WriteLine($"Error importing macro: {ex.Message}");
                 return null;
             }
         }
 
         /// <summary>
-        /// Guarda configuraciones generales de la aplicación
+        /// Saves general application settings
         /// </summary>
-        /// <param name="settings">Diccionario con configuraciones</param>
-        /// <returns>True si se guardó correctamente</returns>
+        /// <param name="settings">Dictionary with settings</param>
+        /// <returns>True if saved successfully</returns>
         public bool SaveSettings(Dictionary<string, object> settings)
         {
             try
@@ -357,15 +357,15 @@ namespace MacroManager.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error al guardar configuraciones: {ex.Message}");
+                Console.WriteLine($"Error saving settings: {ex.Message}");
                 return false;
             }
         }
 
         /// <summary>
-        /// Carga configuraciones generales de la aplicación
+        /// Loads general application settings
         /// </summary>
-        /// <returns>Diccionario con configuraciones</returns>
+        /// <returns>Dictionary with settings</returns>
         public Dictionary<string, object> LoadSettings()
         {
             try
@@ -379,13 +379,13 @@ namespace MacroManager.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error al cargar configuraciones: {ex.Message}");
+                Console.WriteLine($"Error loading settings: {ex.Message}");
                 return new Dictionary<string, object>();
             }
         }
 
         /// <summary>
-        /// Limpia caracteres inválidos de nombres de archivo
+        /// Cleans invalid characters from file names
         /// </summary>
         private string SanitizeFileName(string fileName)
         {
@@ -401,7 +401,7 @@ namespace MacroManager.Services
         }
 
         /// <summary>
-        /// Obtiene la ruta del directorio de macros
+        /// Gets the macros directory path
         /// </summary>
         public string GetMacrosDirectory() => _macrosDirectory;
     }

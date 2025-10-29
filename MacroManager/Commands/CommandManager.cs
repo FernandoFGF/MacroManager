@@ -5,8 +5,8 @@ using System.Linq;
 namespace MacroManager.Commands
 {
     /// <summary>
-    /// Gestor de comandos que maneja el historial de operaciones
-    /// Permite deshacer y rehacer acciones
+    /// Command manager that handles operation history
+    /// Allows undo and redo actions
     /// </summary>
     public class CommandManager
     {
@@ -21,7 +21,7 @@ namespace MacroManager.Commands
         }
 
         /// <summary>
-        /// Ejecuta un comando y lo agrega al historial
+        /// Executes a command and adds it to history
         /// </summary>
         public void ExecuteCommand(ICommand command)
         {
@@ -30,14 +30,14 @@ namespace MacroManager.Commands
 
             command.Execute();
             _undoStack.Push(command);
-            _redoStack.Clear(); // Limpiar redo cuando se ejecuta un nuevo comando
+            _redoStack.Clear(); // Clear redo when executing a new command
 
-            // Limitar el tamaño del historial
+            // Limit history size
             if (_undoStack.Count > MaxHistorySize)
             {
                 var commands = _undoStack.ToArray();
                 _undoStack.Clear();
-                for (int i = 1; i < commands.Length; i++) // Mantener todos excepto el más antiguo
+                for (int i = 1; i < commands.Length; i++) // Keep all except the oldest
                 {
                     _undoStack.Push(commands[i]);
                 }
@@ -45,7 +45,7 @@ namespace MacroManager.Commands
         }
 
         /// <summary>
-        /// Deshace el último comando ejecutado
+        /// Undoes the last executed command
         /// </summary>
         public bool Undo()
         {
@@ -59,7 +59,7 @@ namespace MacroManager.Commands
         }
 
         /// <summary>
-        /// Rehace el último comando deshecho
+        /// Redoes the last undone command
         /// </summary>
         public bool Redo()
         {
@@ -73,17 +73,17 @@ namespace MacroManager.Commands
         }
 
         /// <summary>
-        /// Indica si se puede deshacer
+        /// Indicates if undo is possible
         /// </summary>
         public bool CanUndo => _undoStack.Count > 0 && _undoStack.Peek().CanUndo;
 
         /// <summary>
-        /// Indica si se puede rehacer
+        /// Indicates if redo is possible
         /// </summary>
         public bool CanRedo => _redoStack.Count > 0;
 
         /// <summary>
-        /// Obtiene la descripción del siguiente comando a deshacer
+        /// Gets the description of the next command to undo
         /// </summary>
         public string GetUndoDescription()
         {
@@ -91,7 +91,7 @@ namespace MacroManager.Commands
         }
 
         /// <summary>
-        /// Obtiene la descripción del siguiente comando a rehacer
+        /// Gets the description of the next command to redo
         /// </summary>
         public string GetRedoDescription()
         {
@@ -99,7 +99,7 @@ namespace MacroManager.Commands
         }
 
         /// <summary>
-        /// Limpia todo el historial
+        /// Clears all history
         /// </summary>
         public void Clear()
         {

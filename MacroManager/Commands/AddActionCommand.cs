@@ -4,7 +4,7 @@ using MacroManager.Models;
 namespace MacroManager.Commands
 {
     /// <summary>
-    /// Comando para agregar una acción a la macro actual
+    /// Command to add an action to the current macro
     /// </summary>
     public class AddActionCommand : ICommand
     {
@@ -13,7 +13,7 @@ namespace MacroManager.Commands
         private int _actionIndex;
 
         public bool CanUndo => true;
-        public string Description => "Agregar acción";
+        public string Description => "Add action";
 
         public AddActionCommand(Model model)
         {

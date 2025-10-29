@@ -1,14 +1,25 @@
-# MacroManager for Video Games
+# MacroManager - Gaming Automation Tool
 
-Windows Forms application for creating, recording, and playing custom macros for video games.
+Windows Forms application for creating, recording, and executing custom macros, keyboard shortcuts, and mouse actions for video games.
 
 ## 🎮 Features
 
-- **Macro Recording**: Automatic capture of keyboard and mouse actions
+### 📝 Macros (Available)
+- **Automatic Recording**: Automatic capture of keyboard and mouse actions
 - **Playback**: Execute recorded macros with configurable repetitions
 - **Complete Management**: Save, load, export and import macros
-- **Intuitive Interface**: Clean and easy-to-use design
+- **Visual Editor**: Intuitive interface for editing individual actions
 - **Persistence**: Saves macros in JSON format
+
+### ⌨️ Shortcuts (Coming Soon)
+- Custom keyboard shortcuts configuration
+- Macro assignment to key combinations
+- Global hotkey management
+
+### 🖱️ Mouse (Coming Soon)
+- Specific mouse actions configuration
+- Custom movements and clicks management
+- Advanced mouse tools
 
 ## 🚀 How to Use
 
@@ -40,23 +51,44 @@ Windows Forms application for creating, recording, and playing custom macros for
 
 ## 🛠️ Architecture
 
-The project is structured with object-oriented architecture:
+The project is structured with **MVC (Model-View-Controller)** architecture and **dependency injection**:
 
 ```
 MacroManager/
-├── Models/              # Data models
-│   └── MacroConfig.cs   # Macro configuration
-├── Services/            # Business logic
-│   ├── MacroRecorder.cs # Action recording
-│   ├── MacroPlayer.cs   # Action playback
-│   └── SettingsManager.cs # Persistence
-└── MainForm.cs          # User interface
+├── Models/                    # Data models
+│   └── MacroConfig.cs         # Macro configuration
+├── Services/                  # Business logic
+│   ├── IMacroRecorder.cs      # Recording interface
+│   ├── IMacroPlayer.cs        # Playback interface
+│   ├── ISettingsManager.cs    # Settings interface
+│   ├── MacroRecorder.cs       # Recording service
+│   ├── MacroPlayer.cs         # Playback service
+│   ├── SettingsManager.cs     # Settings management
+│   └── UIConfigurationService.cs # UI configuration
+├── Commands/                  # Command Pattern
+│   ├── ICommand.cs            # Command interface
+│   ├── CommandManager.cs      # Command manager
+│   ├── CreateMacroCommand.cs  # Create macro command
+│   ├── AddActionCommand.cs    # Add action command
+│   └── DeleteActionCommand.cs # Delete action command
+├── Controller.cs              # Main controller
+├── Model.cs                   # Data model
+├── View.cs                    # Main view
+└── Program.cs                 # Entry point
 ```
+
+### Design Patterns Implemented
+
+- **MVC (Model-View-Controller)**: Clear separation of responsibilities
+- **Dependency Injection**: Services injected in constructor
+- **Command Pattern**: For macro operations (create, add, delete)
+- **Observer Pattern**: Events for component communication
+- **Service Layer**: Encapsulated services with interfaces
 
 ## 📦 Dependencies
 
 - **Newtonsoft.Json 13.0.3**: JSON serialization
-- **InputSimulatorCore 1.0.5**: Keyboard and mouse input simulation
+- **WindowsInput**: Keyboard and mouse input simulation
 
 ## ⚠️ Important Notes
 
@@ -73,6 +105,12 @@ MacroManager/
 - ✅ Windows 10/11
 - ✅ x64 Architecture
 - ✅ .NET 8.0
+
+## 🚧 Development Status
+
+- ✅ **Macros**: Fully functional
+- 🚧 **Shortcuts**: In development
+- 🚧 **Mouse**: In development
 
 ## 📄 License
 

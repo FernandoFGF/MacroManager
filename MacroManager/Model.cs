@@ -11,12 +11,12 @@ using MacroManager.Services;
 namespace MacroManager
 {
     /// <summary>
-    /// Modelo de datos para la aplicación MacroManager
-    /// Contiene toda la lógica de datos, configuración y estado de la aplicación
+    /// Data model for the MacroManager application
+    /// Contains all data logic, configuration and application state
     /// </summary>
     public class Model
     {
-        // Services - ahora inyectados
+        // Services - now injected
         private readonly IMacroRecorder _recorder;
         private readonly IMacroPlayer _player;
         private readonly ISettingsManager _settingsManager;
@@ -36,7 +36,7 @@ namespace MacroManager
         public event EventHandler CurrentMacroChanged;
 
         /// <summary>
-        /// Constructor con inyección de dependencias
+        /// Constructor with dependency injection
         /// </summary>
         public Model(IMacroRecorder recorder, IMacroPlayer player, ISettingsManager settingsManager, UIConfigurationService uiConfig)
         {
@@ -56,7 +56,7 @@ namespace MacroManager
         public bool IsRecording => _recorder?.IsRecording ?? false;
         public bool IsPlaying => _player?.IsPlaying ?? false;
 
-        // UI Configuration Properties - delegadas al servicio
+        // UI Configuration Properties - delegated to service
         public int MinWindowWidth => _uiConfig.MinWindowWidth;
         public int MinWindowHeight => _uiConfig.MinWindowHeight;
         public int DefaultWindowWidth => _uiConfig.DefaultWindowWidth;
@@ -67,7 +67,7 @@ namespace MacroManager
         public int MinimumTreeViewWidth => _uiConfig.MinimumTreeViewWidth;
         public int MinimumEditorWidth => _uiConfig.MinimumEditorWidth;
 
-        // Theme Properties - delegadas al servicio
+        // Theme Properties - delegated to service
         public Color PanelBackColor => _uiConfig.PanelBackColor;
         public Color PanelForeColor => _uiConfig.PanelForeColor;
         public Color AccentColor => _uiConfig.AccentColor;
@@ -377,7 +377,7 @@ namespace MacroManager
         #region Public Event Triggers
 
         /// <summary>
-        /// Notifica que la macro actual ha cambiado
+        /// Notifies that the current macro has changed
         /// </summary>
         public void NotifyCurrentMacroChanged()
         {
@@ -385,7 +385,7 @@ namespace MacroManager
         }
 
         /// <summary>
-        /// Notifica que las macros han cambiado
+        /// Notifies that macros have changed
         /// </summary>
         public void NotifyMacrosChanged()
         {
@@ -397,7 +397,7 @@ namespace MacroManager
         #region Validation Methods
 
         /// <summary>
-        /// Valida una configuración de macro
+        /// Validates a macro configuration
         /// </summary>
         public bool ValidateMacro(MacroConfig macro)
         {
@@ -414,7 +414,7 @@ namespace MacroManager
         }
 
         /// <summary>
-        /// Valida una acción de macro
+        /// Validates a macro action
         /// </summary>
         public bool ValidateAction(MacroAction action)
         {
@@ -461,16 +461,16 @@ namespace MacroManager
         {
             return type switch
             {
-                ActionType.KeyPress => "⌨️  Pulsar Tecla",
-                ActionType.KeyDown => "⬇️  Tecla Pulsada",
-                ActionType.KeyUp => "⬆️  Tecla Soltada",
-                ActionType.MouseLeftDown => "🖱️  Click Ratón",
-                ActionType.MouseLeftUp => "🖱️  Soltar Ratón",
-                ActionType.MouseRightDown => "🖱️  Click Derecho",
-                ActionType.MouseRightUp => "🖱️  Soltar Derecho",
-                ActionType.MouseMove => "↔️  Mover Ratón",
-                ActionType.Delay => "⏱️  Espera",
-                _ => "❓ Desconocida"
+                ActionType.KeyPress => "⌨️  Key Press",
+                ActionType.KeyDown => "⬇️  Key Down",
+                ActionType.KeyUp => "⬆️  Key Up",
+                ActionType.MouseLeftDown => "🖱️  Mouse Click",
+                ActionType.MouseLeftUp => "🖱️  Mouse Release",
+                ActionType.MouseRightDown => "🖱️  Right Click",
+                ActionType.MouseRightUp => "🖱️  Right Release",
+                ActionType.MouseMove => "↔️  Mouse Move",
+                ActionType.Delay => "⏱️  Delay",
+                _ => "❓ Unknown"
             };
         }
 

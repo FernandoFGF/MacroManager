@@ -1624,19 +1624,23 @@ namespace MacroManager
 
             _currentMacro.Actions.RemoveAt(_selectedActionIndex);
             
-            // Adjust selection
-            if (_selectedActionIndex >= _currentMacro.Actions.Count)
-                _selectedActionIndex = _currentMacro.Actions.Count - 1;
-
-            RefreshActionsDisplay();
-            if (_selectedActionIndex >= 0)
+            // Adjust selection after deletion
+            if (_currentMacro.Actions.Count == 0)
             {
-                LoadActionToEditor(_selectedActionIndex);
-                HighlightAction(_selectedActionIndex);
+                // No actions left, clear selection
+                _selectedActionIndex = -1;
+                RefreshActionsDisplay();
+                ClearRuleEditor();
             }
             else
             {
-                ClearRuleEditor();
+                // Adjust selection to stay within bounds
+                if (_selectedActionIndex >= _currentMacro.Actions.Count)
+                    _selectedActionIndex = _currentMacro.Actions.Count - 1;
+
+                RefreshActionsDisplay();
+                LoadActionToEditor(_selectedActionIndex);
+                HighlightAction(_selectedActionIndex);
             }
         }
 

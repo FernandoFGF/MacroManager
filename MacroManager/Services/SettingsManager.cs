@@ -59,11 +59,66 @@ namespace MacroManager.Services
 
                 macro.LastModified = DateTime.Now;
 
-                string fileName = $"{SanitizeFileName(macro.Name)}_{macro.Id}.json";
-                string filePath = Path.Combine(_macrosDirectory, fileName);
+                // Find the existing file for this macro (by ID)
+                string existingFilePath = FindMacroFile(macro.Id);
+                
+                // Use the macro name as filename (with .json extension)
+                string newFileName = $"{SanitizeFileName(macro.Name)}.json";
+                string newFilePath = Path.Combine(_macrosDirectory, newFileName);
+
+                // If the file name has changed, delete the old file
+                if (existingFilePath != null && existingFilePath != newFilePath)
+                {
+                    try
+                    {
+                        File.Delete(existingFilePath);
+                    }
+                    catch
+                    {
+                        // Continue even if deletion fails
+                    }
+                }
+
+                // Check if there's already a file with this name but different ID
+                if (File.Exists(newFilePath))
+                {
+                    // Load the existing file to check if it's the same macro
+                    try
+                    {
+                        string existingJson = File.ReadAllText(newFilePath);
+                        var existingMacro = JsonConvert.DeserializeObject<MacroConfig>(existingJson);
+                        
+                        // If it's a different macro, add a number suffix
+                        if (existingMacro != null && existingMacro.Id != macro.Id)
+                        {
+                            int counter = 1;
+                            string baseName = SanitizeFileName(macro.Name);
+                            
+                            do
+                            {
+                                newFileName = $"{baseName}_{counter}.json";
+                                newFilePath = Path.Combine(_macrosDirectory, newFileName);
+                                counter++;
+                            } while (File.Exists(newFilePath));
+                        }
+                    }
+                    catch
+                    {
+                        // If we can't read the existing file, add a number suffix
+                        int counter = 1;
+                        string baseName = SanitizeFileName(macro.Name);
+                        
+                        do
+                        {
+                            newFileName = $"{baseName}_{counter}.json";
+                            newFilePath = Path.Combine(_macrosDirectory, newFileName);
+                            counter++;
+                        } while (File.Exists(newFilePath));
+                    }
+                }
 
                 string json = JsonConvert.SerializeObject(macro, _jsonSettings);
-                File.WriteAllText(filePath, json);
+                File.WriteAllText(newFilePath, json);
 
                 return true;
             }
@@ -75,6 +130,42 @@ namespace MacroManager.Services
         }
 
         /// <summary>
+        /// Find the file path for a macro by its ID
+        /// </summary>
+        private string FindMacroFile(Guid macroId)
+        {
+            try
+            {
+                string[] files = Directory.GetFiles(_macrosDirectory, "*.json");
+                
+                foreach (string file in files)
+                {
+                    try
+                    {
+                        string json = File.ReadAllText(file);
+                        var macro = JsonConvert.DeserializeObject<MacroConfig>(json);
+                        
+                        if (macro != null && macro.Id == macroId)
+                        {
+                            return file;
+                        }
+                    }
+                    catch
+                    {
+                        // Skip invalid files
+                        continue;
+                    }
+                }
+            }
+            catch
+            {
+                // Directory access error
+            }
+            
+            return null;
+        }
+
+        /// <summary>
         /// Carga una macro desde un archivo
         /// </summary>
         /// <param name="macroId">ID de la macro a cargar</param>
@@ -83,13 +174,29 @@ namespace MacroManager.Services
         {
             try
             {
-                string[] files = Directory.GetFiles(_macrosDirectory, $"*_{macroId}.json");
+                // Search for files that contain this macro ID
+                string[] files = Directory.GetFiles(_macrosDirectory, "*.json");
                 
-                if (files.Length == 0)
-                    return null;
-
-                string json = File.ReadAllText(files[0]);
-                return JsonConvert.DeserializeObject<MacroConfig>(json);
+                foreach (string file in files)
+                {
+                    try
+                    {
+                        string json = File.ReadAllText(file);
+                        var macro = JsonConvert.DeserializeObject<MacroConfig>(json);
+                        
+                        if (macro != null && macro.Id == macroId)
+                        {
+                            return macro;
+                        }
+                    }
+                    catch
+                    {
+                        // Skip invalid files
+                        continue;
+                    }
+                }
+                
+                return null;
             }
             catch (Exception ex)
             {
@@ -118,7 +225,12 @@ namespace MacroManager.Services
                         var macro = JsonConvert.DeserializeObject<MacroConfig>(json);
                         
                         if (macro != null)
+                        {
+                            // Set the display name to the actual filename (without extension)
+                            string fileName = Path.GetFileNameWithoutExtension(file);
+                            macro.Name = fileName;
                             macros.Add(macro);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -143,14 +255,30 @@ namespace MacroManager.Services
         {
             try
             {
-                string[] files = Directory.GetFiles(_macrosDirectory, $"*_{macroId}.json");
-
+                // Search for files that contain this macro ID
+                string[] files = Directory.GetFiles(_macrosDirectory, "*.json");
+                
                 foreach (string file in files)
                 {
-                    File.Delete(file);
+                    try
+                    {
+                        string json = File.ReadAllText(file);
+                        var macro = JsonConvert.DeserializeObject<MacroConfig>(json);
+                        
+                        if (macro != null && macro.Id == macroId)
+                        {
+                            File.Delete(file);
+                            return true;
+                        }
+                    }
+                    catch
+                    {
+                        // Skip invalid files
+                        continue;
+                    }
                 }
 
-                return true;
+                return false;
             }
             catch (Exception ex)
             {

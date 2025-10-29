@@ -21,6 +21,8 @@ namespace MacroManager
         private Panel _actionsPanel;
         private VScrollBar _actionsScrollBar;
         private Button _btnPlay;
+        private Button _btnRecord;
+        private Button _btnStopRecord;
         private NumericUpDown _numLoopCount;
         private TreeView _macroTreeView;
         
@@ -296,11 +298,14 @@ namespace MacroManager
                 HotTracking = true
             };
 
+            // Create context menu
+            CreateTreeViewContextMenu();
+
             RefreshMacroTree();
 
             _macroTreeView.NodeMouseClick += (s, e) =>
             {
-                if (e.Node.Tag is MacroConfig macro)
+                if (e.Button == MouseButtons.Left && e.Node.Tag is MacroConfig macro)
                 {
                     _controller.LoadMacro(macro);
                 }
@@ -314,7 +319,118 @@ namespace MacroManager
                 }
             };
 
+            // Handle Delete key
+            _macroTreeView.KeyDown += (s, e) =>
+            {
+                if (e.KeyCode == Keys.Delete && _macroTreeView.SelectedNode?.Tag is MacroConfig macro)
+                {
+                    _controller.DeleteCurrentMacro();
+                }
+            };
+
             parent.Controls.Add(_macroTreeView);
+        }
+
+        /// <summary>
+        /// Create context menu for TreeView
+        /// </summary>
+        private void CreateTreeViewContextMenu()
+        {
+            ContextMenuStrip contextMenu = new ContextMenuStrip
+            {
+                BackColor = _model.CardBackColor,
+                ForeColor = _model.PanelForeColor,
+                Font = new Font("Segoe UI", 9)
+            };
+
+            // Rename macro
+            ToolStripMenuItem renameItem = new ToolStripMenuItem("✏️ Renombrar", null, (s, e) =>
+            {
+                if (_macroTreeView.SelectedNode?.Tag is MacroConfig macro)
+                {
+                    _controller.RenameCurrentMacro();
+                }
+            });
+            contextMenu.Items.Add(renameItem);
+
+            contextMenu.Items.Add(new ToolStripSeparator());
+
+            // Duplicate macro
+            ToolStripMenuItem duplicateItem = new ToolStripMenuItem("📋 Duplicar", null, (s, e) =>
+            {
+                if (_macroTreeView.SelectedNode?.Tag is MacroConfig macro)
+                {
+                    _controller.DuplicateCurrentMacro();
+                }
+            });
+            contextMenu.Items.Add(duplicateItem);
+
+            // Export macro
+            ToolStripMenuItem exportItem = new ToolStripMenuItem("📤 Exportar", null, (s, e) =>
+            {
+                if (_macroTreeView.SelectedNode?.Tag is MacroConfig macro)
+                {
+                    _controller.ExportMacro();
+                }
+            });
+            contextMenu.Items.Add(exportItem);
+
+            contextMenu.Items.Add(new ToolStripSeparator());
+
+            // Open file location
+            ToolStripMenuItem openLocationItem = new ToolStripMenuItem("📁 Abrir ubicación", null, (s, e) =>
+            {
+                if (_macroTreeView.SelectedNode?.Tag is MacroConfig macro)
+                {
+                    _controller.OpenMacroLocation(macro);
+                }
+            });
+            contextMenu.Items.Add(openLocationItem);
+
+            // Show properties
+            ToolStripMenuItem propertiesItem = new ToolStripMenuItem("ℹ️ Propiedades", null, (s, e) =>
+            {
+                if (_macroTreeView.SelectedNode?.Tag is MacroConfig macro)
+                {
+                    _controller.ShowMacroProperties(macro);
+                }
+            });
+            contextMenu.Items.Add(propertiesItem);
+
+            contextMenu.Items.Add(new ToolStripSeparator());
+
+            // Refresh macros
+            ToolStripMenuItem refreshItem = new ToolStripMenuItem("🔄 Actualizar lista", null, (s, e) =>
+            {
+                _controller.RefreshMacros();
+            });
+            contextMenu.Items.Add(refreshItem);
+
+            contextMenu.Items.Add(new ToolStripSeparator());
+
+            // Delete macro
+            ToolStripMenuItem deleteItem = new ToolStripMenuItem("🗑️ Eliminar", null, (s, e) =>
+            {
+                if (_macroTreeView.SelectedNode?.Tag is MacroConfig macro)
+                {
+                    _controller.DeleteCurrentMacro();
+                }
+            });
+            deleteItem.BackColor = Color.FromArgb(244, 67, 54);
+            deleteItem.ForeColor = Color.White;
+            contextMenu.Items.Add(deleteItem);
+
+            // Assign context menu to TreeView
+            _macroTreeView.ContextMenuStrip = contextMenu;
+
+            // Enable right-click selection
+            _macroTreeView.NodeMouseClick += (s, e) =>
+            {
+                if (e.Button == MouseButtons.Right)
+                {
+                    _macroTreeView.SelectedNode = e.Node;
+                }
+            };
         }
 
         /// <summary>
@@ -456,11 +572,11 @@ namespace MacroManager
             Panel buttonPanel = new Panel
             {
                 Dock = DockStyle.Bottom,
-                Height = 100,
+                Height = 80,
                 BackColor = _model.PanelBackColor
             };
 
-            // Top row: +, -, Duplicate buttons
+            // Top row: +, -, Duplicate, Save buttons
             Panel topButtonRow = new Panel
             {
                 Dock = DockStyle.Top,
@@ -513,33 +629,67 @@ namespace MacroManager
             btnDuplicate.Click += (s, e) => _controller.DuplicateAction(_selectedActionIndex);
             topButtonRow.Controls.Add(btnDuplicate);
 
+
             buttonPanel.Controls.Add(topButtonRow);
 
-            // Bottom row: Save button
-            Panel bottomButtonRow = new Panel
+            // Recording row: Record and Stop Record buttons
+            Panel recordingRow = new Panel
             {
-                Dock = DockStyle.Bottom,
-                Height = 45,
+                Dock = DockStyle.Top,
+                Height = 40,
                 BackColor = _model.PanelBackColor
             };
 
+            // Record Button
+            _btnRecord = new Button
+            {
+                Text = "🔴",
+                Location = new Point(10, 5),
+                Size = new Size(70, 35),
+                BackColor = Color.FromArgb(244, 67, 54),
+                ForeColor = Color.White,
+                Font = new Font("Courier New", 10, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
+            };
+            _btnRecord.FlatAppearance.BorderSize = 0;
+            _btnRecord.Click += (s, e) => _controller.StartRecording();
+            recordingRow.Controls.Add(_btnRecord);
+
+            // Stop Record Button
+            _btnStopRecord = new Button
+            {
+                Text = "⏹️",
+                Location = new Point(85, 5),
+                Size = new Size(70, 35),
+                BackColor = Color.FromArgb(158, 158, 158),
+                ForeColor = Color.White,
+                Font = new Font("Courier New", 10, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand,
+                Enabled = false
+            };
+            _btnStopRecord.FlatAppearance.BorderSize = 0;
+            _btnStopRecord.Click += (s, e) => _controller.StopRecording();
+            recordingRow.Controls.Add(_btnStopRecord);
+
+            // Save Button
             Button btnSave = new Button
             {
                 Text = "💾",
-                Dock = DockStyle.Fill,
-                Height = 45,
+                Location = new Point(160, 5),
+                Size = new Size(70, 35),
                 BackColor = Color.FromArgb(76, 175, 80),
                 ForeColor = Color.White,
-                Font = new Font("Courier New", 11, FontStyle.Bold),
-                Margin = new Padding(5),
+                Font = new Font("Courier New", 10, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };
             btnSave.FlatAppearance.BorderSize = 0;
             btnSave.Click += (s, e) => _controller.SaveCurrentMacro();
-            bottomButtonRow.Controls.Add(btnSave);
+            recordingRow.Controls.Add(btnSave);
 
-            buttonPanel.Controls.Add(bottomButtonRow);
+            buttonPanel.Controls.Add(recordingRow);
             ruleEditorPanel.Controls.Add(buttonPanel);
 
             // Store references for later use
@@ -676,6 +826,8 @@ namespace MacroManager
             _model.ActionRecorded += OnActionRecorded;
             _model.PlaybackStarted += OnPlaybackStarted;
             _model.PlaybackStopped += OnPlaybackStopped;
+            _model.RecordingStarted += OnRecordingStarted;
+            _model.RecordingStopped += OnRecordingStopped;
             _model.MacrosChanged += OnMacrosChanged;
             _model.CurrentMacroChanged += OnCurrentMacroChanged;
         }
@@ -712,6 +864,34 @@ namespace MacroManager
             
             _btnPlay.Text = "▶️";
             _btnPlay.BackColor = Color.FromArgb(33, 150, 243);
+        }
+
+        private void OnRecordingStarted(object sender, EventArgs e)
+        {
+            if (_mainForm.InvokeRequired)
+            {
+                _mainForm.Invoke(new Action(() => OnRecordingStarted(sender, e)));
+                return;
+            }
+            
+            _btnRecord.Enabled = false;
+            _btnRecord.BackColor = Color.FromArgb(100, 100, 100);
+            _btnStopRecord.Enabled = true;
+            _btnStopRecord.BackColor = Color.FromArgb(244, 67, 54);
+        }
+
+        private void OnRecordingStopped(object sender, EventArgs e)
+        {
+            if (_mainForm.InvokeRequired)
+            {
+                _mainForm.Invoke(new Action(() => OnRecordingStopped(sender, e)));
+                return;
+            }
+            
+            _btnRecord.Enabled = true;
+            _btnRecord.BackColor = Color.FromArgb(244, 67, 54);
+            _btnStopRecord.Enabled = false;
+            _btnStopRecord.BackColor = Color.FromArgb(158, 158, 158);
         }
 
         private void OnMacrosChanged(object sender, EventArgs e)

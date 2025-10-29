@@ -215,6 +215,99 @@ namespace MacroManager
             _model.LoadMacro(macro);
         }
 
+        /// <summary>
+        /// Refresh macros from disk
+        /// </summary>
+        public void RefreshMacros()
+        {
+            _model.RefreshLoadedMacros();
+        }
+
+        /// <summary>
+        /// Duplicate current macro
+        /// </summary>
+        public void DuplicateCurrentMacro()
+        {
+            if (_model.CurrentMacro == null)
+            {
+                MessageBox.Show("No macro loaded to duplicate.", "Warning");
+                return;
+            }
+
+            string newName = PromptInput("Enter name for duplicate:", $"{_model.CurrentMacro.Name}_Copy");
+            if (!string.IsNullOrEmpty(newName))
+            {
+                var duplicatedMacro = new MacroConfig
+                {
+                    Name = newName,
+                    Actions = new List<MacroAction>(_model.CurrentMacro.Actions.Select(a => new MacroAction
+                    {
+                        Type = a.Type,
+                        KeyCode = a.KeyCode,
+                        DelayMs = a.DelayMs,
+                        X = a.X,
+                        Y = a.Y,
+                        TimestampMs = a.TimestampMs
+                    })),
+                    CreatedDate = DateTime.Now,
+                    LastModified = DateTime.Now,
+                    LastUsed = DateTime.Now
+                };
+
+                // Save the duplicated macro instead of the current one
+                bool success = _model.SaveMacro(duplicatedMacro);
+                if (success)
+                {
+                    _model.LoadMacro(duplicatedMacro);
+                    MessageBox.Show("Macro duplicated successfully.", "Success");
+                }
+                else
+                {
+                    MessageBox.Show("Error duplicating macro.", "Error");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Open macro file location in explorer
+        /// </summary>
+        public void OpenMacroLocation(MacroConfig macro)
+        {
+            try
+            {
+                // Get the macro file path from model
+                string macroPath = _model.GetMacroFilePath(macro);
+                if (!string.IsNullOrEmpty(macroPath) && System.IO.File.Exists(macroPath))
+                {
+                    // Open file location in Windows Explorer
+                    System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{macroPath}\"");
+                }
+                else
+                {
+                    MessageBox.Show("Macro file location not found.", "Warning");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error opening file location: {ex.Message}", "Error");
+            }
+        }
+
+        /// <summary>
+        /// Show macro properties dialog
+        /// </summary>
+        public void ShowMacroProperties(MacroConfig macro)
+        {
+            string properties = $"Nombre: {macro.Name}\n" +
+                              $"Acciones: {macro.Actions.Count}\n" +
+                              $"Creado: {macro.CreatedDate:dd/MM/yyyy HH:mm:ss}\n" +
+                              $"Modificado: {macro.LastModified:dd/MM/yyyy HH:mm:ss}\n" +
+                              $"Último uso: {macro.LastUsed:dd/MM/yyyy HH:mm:ss}\n" +
+                              $"ID: {macro.Id}";
+
+            MessageBox.Show(properties, "Propiedades de la Macro", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
         #endregion
 
         #region Action Management Commands

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -29,6 +30,8 @@ namespace MacroManager
         public event EventHandler<MacroAction> ActionRecorded;
         public event EventHandler PlaybackStarted;
         public event EventHandler PlaybackStopped;
+        public event EventHandler RecordingStarted;
+        public event EventHandler RecordingStopped;
         public event EventHandler MacrosChanged;
         public event EventHandler CurrentMacroChanged;
 
@@ -94,6 +97,15 @@ namespace MacroManager
             _loadedMacros = _settingsManager.LoadAllMacros();
         }
 
+        /// <summary>
+        /// Refresh loaded macros from disk
+        /// </summary>
+        public void RefreshLoadedMacros()
+        {
+            _loadedMacros = _settingsManager.LoadAllMacros();
+            MacrosChanged?.Invoke(this, EventArgs.Empty);
+        }
+
         #endregion
 
         #region Macro Management
@@ -123,6 +135,7 @@ namespace MacroManager
         {
             _currentMacro = new MacroConfig { Name = $"Recording_{DateTime.Now:yyyyMMdd_HHmmss}" };
             _recorder.StartRecording();
+            RecordingStarted?.Invoke(this, EventArgs.Empty);
             CurrentMacroChanged?.Invoke(this, EventArgs.Empty);
         }
 
@@ -132,6 +145,7 @@ namespace MacroManager
         public void StopRecording()
         {
             _recorder.StopRecording();
+            RecordingStopped?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
@@ -151,13 +165,32 @@ namespace MacroManager
             
             if (success)
             {
-                // Add to loaded macros if not already there
-                if (!_loadedMacros.Any(m => m.Id == _currentMacro.Id))
-                {
-                    _loadedMacros.Add(_currentMacro);
-                }
-                
-                MacrosChanged?.Invoke(this, EventArgs.Empty);
+                // Refresh the list from disk to ensure consistency
+                RefreshLoadedMacros();
+            }
+            
+            return success;
+        }
+
+        /// <summary>
+        /// Save a specific macro
+        /// </summary>
+        public bool SaveMacro(MacroConfig macro)
+        {
+            if (macro == null)
+                return false;
+
+            if (!ValidateMacro(macro))
+                return false;
+
+            macro.LastModified = DateTime.Now;
+            macro.LastUsed = DateTime.Now;
+            bool success = _settingsManager.SaveMacro(macro);
+            
+            if (success)
+            {
+                // Refresh the list from disk to ensure consistency
+                RefreshLoadedMacros();
             }
             
             return success;
@@ -202,8 +235,8 @@ namespace MacroManager
             var imported = _settingsManager.ImportMacro(filePath);
             if (imported != null)
             {
-                _loadedMacros.Add(imported);
-                MacrosChanged?.Invoke(this, EventArgs.Empty);
+                // Refresh the list from disk to ensure consistency
+                RefreshLoadedMacros();
             }
             return imported;
         }
@@ -450,6 +483,35 @@ namespace MacroManager
                 return null;
 
             return _loadedMacros.OrderByDescending(m => m.LastUsed).FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Get macro file path
+        /// </summary>
+        public string GetMacroFilePath(MacroConfig macro)
+        {
+            if (macro == null)
+                return null;
+
+            string macrosDirectory = _settingsManager.GetMacrosDirectory();
+            string fileName = $"{SanitizeFileName(macro.Name)}.json";
+            return Path.Combine(macrosDirectory, fileName);
+        }
+
+        /// <summary>
+        /// Sanitize file name for safe file system usage
+        /// </summary>
+        private string SanitizeFileName(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName))
+                return "macro";
+
+            char[] invalidChars = Path.GetInvalidFileNameChars();
+            string sanitized = new string(fileName.Select(c => 
+                invalidChars.Contains(c) ? '_' : c
+            ).ToArray());
+
+            return sanitized.Trim();
         }
 
         #endregion

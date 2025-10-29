@@ -14,12 +14,19 @@ namespace MacroManager.Services
     public class MacroPlayer
     {
         private bool _isPlaying;
+        private bool _isPaused;
         private CancellationTokenSource _cancellationTokenSource;
+        private ManualResetEventSlim _pauseEvent;
 
         /// <summary>
         /// Indicates if currently playing a macro
         /// </summary>
         public bool IsPlaying => _isPlaying;
+
+        /// <summary>
+        /// Indicates if currently paused
+        /// </summary>
+        public bool IsPaused => _isPaused;
 
         /// <summary>
         /// Event raised when playback starts
@@ -47,7 +54,9 @@ namespace MacroManager.Services
                 return;
 
             _isPlaying = true;
+            _isPaused = false;
             _cancellationTokenSource = new CancellationTokenSource();
+            _pauseEvent = new ManualResetEventSlim(true); // Initially not paused
             PlaybackStarted?.Invoke(this, EventArgs.Empty);
 
             try
@@ -75,6 +84,9 @@ namespace MacroManager.Services
             finally
             {
                 _isPlaying = false;
+                _isPaused = false;
+                _pauseEvent?.Dispose();
+                _pauseEvent = null;
                 PlaybackStopped?.Invoke(this, EventArgs.Empty);
             }
         }
@@ -91,12 +103,18 @@ namespace MacroManager.Services
                 if (cancellationToken.IsCancellationRequested)
                     break;
 
+                // Wait for pause to be released
+                _pauseEvent.Wait(cancellationToken);
+
                 // Calculate delay from last action
                 long delay = action.TimestampMs - lastTimestamp;
                 if (delay > 0)
                 {
                     await Task.Delay((int)delay, cancellationToken);
                 }
+
+                // Wait for pause to be released again after delay
+                _pauseEvent.Wait(cancellationToken);
 
                 // Execute the action
                 ExecuteAction(action);
@@ -113,6 +131,32 @@ namespace MacroManager.Services
             if (_isPlaying)
             {
                 _cancellationTokenSource?.Cancel();
+                _isPaused = false;
+                _pauseEvent?.Set(); // Release any waiting threads
+            }
+        }
+
+        /// <summary>
+        /// Pauses current playback
+        /// </summary>
+        public void Pause()
+        {
+            if (_isPlaying && !_isPaused)
+            {
+                _isPaused = true;
+                _pauseEvent?.Reset();
+            }
+        }
+
+        /// <summary>
+        /// Resumes paused playback
+        /// </summary>
+        public void Resume()
+        {
+            if (_isPlaying && _isPaused)
+            {
+                _isPaused = false;
+                _pauseEvent?.Set();
             }
         }
 

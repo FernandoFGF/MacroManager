@@ -27,9 +27,12 @@ namespace MacroManager
         private MacroConfig _currentMacro;
 
         // UI Controls
-        private RichTextBox _textEditorRtb;
+        private Panel _actionsPanel;
+        private VScrollBar _actionsScrollBar;
         private Button _btnPlay;
         private Button _btnStop;
+        private Button _btnPause;
+        private NumericUpDown _numLoopCount;
         private TreeView _macroTreeView;
         
         // Rule editor controls
@@ -406,29 +409,28 @@ namespace MacroManager
         }
 
         /// <summary>
-        /// Create the text editor panel with switch button (center area)
+        /// Create the actions panel with buttons (center area)
         /// </summary>
         private void CreateTextEditorWithSwitch(Control parent)
         {
-            // Create text editor with modern styling
-            _textEditorRtb = new RichTextBox
+            // Create main panel for actions
+            _actionsPanel = new Panel
             {
                 Dock = DockStyle.Fill,
-                Font = new Font("Courier New", 11),
-                Padding = new Padding(15),
-                WordWrap = false,
-                Text = "// Action list will appear here",
                 BackColor = _cardBackColor,
-                ForeColor = _panelForeColor,
-                BorderStyle = BorderStyle.None,
-                ScrollBars = RichTextBoxScrollBars.Vertical,
-                ReadOnly = true  // Make read-only - edits only through right panel
+                Padding = new Padding(10),
+                AutoScroll = true
             };
 
-            // Add click event to select action
-            _textEditorRtb.MouseClick += (s, e) => SelectActionFromClick(e.Location);
+            // Create scroll bar for better control
+            _actionsScrollBar = new VScrollBar
+            {
+                Dock = DockStyle.Right,
+                Width = 17
+            };
 
-            parent.Controls.Add(_textEditorRtb);
+            _actionsPanel.Controls.Add(_actionsScrollBar);
+            parent.Controls.Add(_actionsPanel);
         }
 
         /// <summary>
@@ -559,7 +561,7 @@ namespace MacroManager
 
             Button btnAdd = new Button
             {
-                Text = "➕ Add",
+                Text = "➕",
                 Location = new Point(10, 5),
                 Size = new Size(70, 35),
                 BackColor = Color.FromArgb(76, 175, 80),
@@ -574,9 +576,9 @@ namespace MacroManager
 
             Button btnRemove = new Button
             {
-                Text = "➖ Delete",
+                Text = "➖",
                 Location = new Point(85, 5),
-                Size = new Size(85, 35),
+                Size = new Size(70, 35),
                 BackColor = Color.FromArgb(244, 67, 54),
                 ForeColor = Color.White,
                 Font = new Font("Courier New", 10, FontStyle.Bold),
@@ -589,12 +591,12 @@ namespace MacroManager
 
             Button btnDuplicate = new Button
             {
-                Text = "📋 Duplicate",
-                Location = new Point(175, 5),
-                Size = new Size(95, 35),
+                Text = "📋",
+                Location = new Point(160, 5),
+                Size = new Size(70, 35),
                 BackColor = Color.FromArgb(33, 150, 243),
                 ForeColor = Color.White,
-                Font = new Font("Courier New", 9, FontStyle.Bold),
+                Font = new Font("Courier New", 10, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };
@@ -614,7 +616,7 @@ namespace MacroManager
 
             Button btnSave = new Button
             {
-                Text = "💾 Save Changes",
+                Text = "💾",
                 Dock = DockStyle.Fill,
                 Height = 45,
                 BackColor = Color.FromArgb(76, 175, 80),
@@ -648,66 +650,153 @@ namespace MacroManager
             Panel playbackPanel = new Panel
             {
                 BackColor = _panelBackColor,
-                Padding = new Padding(8)
+                Padding = new Padding(8),
+                Height = 60
             };
 
-            Label lblPlayback = new Label
+            // Create main controls container
+            FlowLayoutPanel controlsPanel = new FlowLayoutPanel
             {
-                Text = "🎮 Playback Controls: Record, Play, Stop, and Repeat Options",
-                Dock = DockStyle.Top,
-                Height = 25,
-                Font = new Font("Courier New", 9, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleLeft,
-                Margin = new Padding(0, 0, 0, 5),
-                BackColor = _panelBackColor,
-                ForeColor = _panelForeColor
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                AutoSize = false,
+                Padding = new Padding(0),
+                AutoScroll = false
             };
 
+            // Play Button (Solo icono)
             _btnPlay = new Button
             {
-                Text = "▶️ Play",
-                Width = 100,
-                Height = 40,
+                Text = "▶️",
+                Size = new Size(45, 35),
                 BackColor = Color.FromArgb(33, 150, 243),
                 ForeColor = Color.White,
-                Font = new Font("Courier New", 10, FontStyle.Bold),
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
-                Cursor = Cursors.Hand
+                Cursor = Cursors.Hand,
+                Margin = new Padding(0, 12, 5, 12),
+                TextAlign = ContentAlignment.MiddleCenter
             };
             _btnPlay.FlatAppearance.BorderSize = 0;
             _btnPlay.Click += (s, e) => PlayCurrentMacro();
 
+            // Pause Button (Solo icono)
+            _btnPause = new Button
+            {
+                Text = "||",
+                Size = new Size(45, 35),
+                BackColor = Color.FromArgb(255, 193, 7),
+                ForeColor = Color.White,
+                Font = new Font("Arial", 16, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand,
+                Margin = new Padding(0, 12, 5, 12),
+                TextAlign = ContentAlignment.MiddleCenter
+            };
+            _btnPause.FlatAppearance.BorderSize = 0;
+            _btnPause.Click += (s, e) => PauseCurrentMacro();
+
+            // Stop Button (Solo icono)
             _btnStop = new Button
             {
-                Text = "⏹️ Stop",
-                Width = 100,
-                Height = 40,
-                BackColor = Color.FromArgb(255, 152, 0),
+                Text = "⏹️",
+                Size = new Size(45, 35),
+                BackColor = Color.FromArgb(244, 67, 54),
                 ForeColor = Color.White,
-                Font = new Font("Courier New", 10, FontStyle.Bold),
-                Margin = new Padding(5, 0, 0, 0),
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
-                Cursor = Cursors.Hand
+                Cursor = Cursors.Hand,
+                Margin = new Padding(0, 12, 15, 12),
+                TextAlign = ContentAlignment.MiddleCenter
             };
             _btnStop.FlatAppearance.BorderSize = 0;
-            _btnStop.Click += (s, e) => _player.Stop();
+            _btnStop.Click += (s, e) => StopCurrentMacro();
 
-            // Add buttons with FlowLayoutPanel for positioning
-            FlowLayoutPanel flowPanel = new FlowLayoutPanel
+            // Loop Label
+            Label lblLoop = new Label
             {
-                Dock = DockStyle.Top,
-                Height = 40,
-                AutoSize = false,
-                WrapContents = false,
-                Padding = new Padding(0)
+                Text = "🔄 Loop",
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                ForeColor = _panelForeColor,
+                BackColor = _panelBackColor,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Margin = new Padding(0, 8, 5, 0)
             };
-            flowPanel.Controls.Add(_btnPlay);
-            flowPanel.Controls.Add(_btnStop);
 
-            playbackPanel.Controls.Add(flowPanel);
-            playbackPanel.Controls.Add(lblPlayback);
+            // Loop Count NumericUpDown
+            _numLoopCount = new NumericUpDown
+            {
+                Size = new Size(60, 22),
+                Minimum = 0,
+                Maximum = 999,
+                Value = 1,
+                Font = new Font("Segoe UI", 9),
+                BackColor = _cardBackColor,
+                ForeColor = _panelForeColor,
+                BorderStyle = BorderStyle.FixedSingle,
+                Margin = new Padding(0, 2, 0, 0)
+            };
+
+            // Create a container for Loop controls (vertical layout)
+            Panel loopContainer = new Panel
+            {
+                Size = new Size(80, 45),
+                BackColor = _panelBackColor,
+                Margin = new Padding(0, 7, 0, 7)
+            };
+            
+            // Position loop label at top (centered horizontally)
+            lblLoop.Location = new Point(10, 2);
+            lblLoop.TextAlign = ContentAlignment.MiddleCenter;
+            loopContainer.Controls.Add(lblLoop);
+            
+            // Position numeric control below (centered horizontally)
+            _numLoopCount.Location = new Point(10, 20);
+            loopContainer.Controls.Add(_numLoopCount);
+
+            // Add controls to panel
+            controlsPanel.Controls.Add(_btnPlay);
+            controlsPanel.Controls.Add(_btnPause);
+            controlsPanel.Controls.Add(_btnStop);
+            controlsPanel.Controls.Add(loopContainer);
+
+            playbackPanel.Controls.Add(controlsPanel);
 
             return playbackPanel;
+        }
+
+        /// <summary>
+        /// Select an action by index
+        /// </summary>
+        private void SelectAction(int actionIndex)
+        {
+            if (_currentMacro == null || actionIndex < 0 || actionIndex >= _currentMacro.Actions.Count)
+                return;
+
+            _selectedActionIndex = actionIndex;
+
+            // Highlight the selected button
+            foreach (Control control in _actionsPanel.Controls)
+            {
+                if (control is Button button && button.Tag is int index)
+                {
+                    if (index == actionIndex)
+                    {
+                        button.BackColor = _accentColor;
+                        button.ForeColor = Color.White;
+                    }
+                    else
+                    {
+                        button.BackColor = _cardBackColor;
+                        button.ForeColor = _panelForeColor;
+                    }
+                }
+            }
+
+            // Load action to editor
+            LoadActionToEditor(actionIndex);
         }
 
         /// <summary>
@@ -715,54 +804,8 @@ namespace MacroManager
         /// </summary>
         private void SelectActionFromClick(Point clickPoint)
         {
-            if (_textEditorRtb == null || _currentMacro == null) return;
-
-            int charIndex = _textEditorRtb.GetCharIndexFromPosition(clickPoint);
-            string fullText = _textEditorRtb.Text;
-
-            // Find which action block was clicked
-            int actionIndex = -1;
-            for (int i = 0; i < fullText.Length; i++)
-            {
-                string marker = $"[ACTION_INDEX_";
-                int markerPos = fullText.IndexOf(marker, i);
-                if (markerPos == -1 || markerPos > charIndex) break;
-
-                if (charIndex >= markerPos && charIndex < markerPos + marker.Length + 5)
-                {
-                    // Extract action index from marker
-                    int startPos = markerPos + marker.Length;
-                    int endPos = fullText.IndexOf("]", startPos);
-                    if (endPos > startPos)
-                    {
-                        string indexStr = fullText.Substring(startPos, endPos - startPos);
-                        if (int.TryParse(indexStr, out int idx))
-                        {
-                            actionIndex = idx;
-                        }
-                    }
-                }
-                i = markerPos + 1;
-            }
-
-            // If not found by marker, find the action block we're in
-            if (actionIndex == -1)
-            {
-                int lineIndex = _textEditorRtb.GetLineFromCharIndex(charIndex);
-                int blockIndex = 0;
-                for (int i = 0; i < lineIndex; i++)
-                {
-                    string line = _textEditorRtb.Lines[i];
-                    if (line.Contains("[ACTION_INDEX_"))
-                    {
-                        blockIndex++;
-                    }
-                }
-                actionIndex = blockIndex - 1;
-            }
-
-            LoadActionToEditor(actionIndex);
-            HighlightAction(actionIndex);
+            // This method is no longer needed as we use button clicks directly
+            // Keeping for compatibility but not used
         }
 
         /// <summary>
@@ -801,30 +844,25 @@ namespace MacroManager
         /// </summary>
         private void HighlightAction(int actionIndex)
         {
-            if (_textEditorRtb == null || actionIndex < 0) return;
+            if (_actionsPanel == null || actionIndex < 0) return;
 
-            // Clear previous highlighting
-            _textEditorRtb.SelectAll();
-            _textEditorRtb.SelectionColor = _panelForeColor;
-            _textEditorRtb.SelectionBackColor = _cardBackColor;
-
-            // Find and highlight the action block
-            string marker = $"[ACTION_INDEX_{actionIndex}]";
-            int markerPos = _textEditorRtb.Text.IndexOf(marker);
-            if (markerPos >= 0)
+            // Highlight the selected button
+            foreach (Control control in _actionsPanel.Controls)
             {
-                // Find the start of the action block (the ┌ line)
-                int blockStart = _textEditorRtb.Text.LastIndexOf("┌", markerPos);
-                int blockEnd = _textEditorRtb.Text.IndexOf("┘", markerPos) + 1;
-                if (blockEnd > blockStart)
+                if (control is Button button && button.Tag is int index)
                 {
-                    _textEditorRtb.Select(blockStart, blockEnd - blockStart);
-                    _textEditorRtb.SelectionBackColor = Color.FromArgb(50, 100, 50); // Highlight color
-                    _textEditorRtb.SelectionColor = _panelForeColor;
+                    if (index == actionIndex)
+                    {
+                        button.BackColor = _accentColor;
+                        button.ForeColor = Color.White;
+                    }
+                    else
+                    {
+                        button.BackColor = _cardBackColor;
+                        button.ForeColor = _panelForeColor;
+                    }
                 }
             }
-
-            _textEditorRtb.Select(0, 0); // Deselect text but keep color
         }
 
         /// <summary>
@@ -884,33 +922,50 @@ namespace MacroManager
         /// </summary>
         private void SaveRuleChanges(TextBox txtKey, TextBox txtDelay, ComboBox cmbActionType)
         {
-            if (_textEditorRtb == null) return;
+            if (_currentMacro == null || _selectedActionIndex < 0 || _selectedActionIndex >= _currentMacro.Actions.Count) return;
 
             try
             {
-                string newRule = $"{txtKey.Text} -> {txtDelay.Text}ms";
+                var action = _currentMacro.Actions[_selectedActionIndex];
                 
-                // Replace selected text or current line
-                if (_textEditorRtb.SelectionLength > 0)
+                // Update delay
+                if (int.TryParse(txtDelay.Text, out int delay))
                 {
-                    _textEditorRtb.SelectedText = newRule;
+                    action.DelayMs = delay;
                 }
-                else
+
+                // Update action type
+                if (cmbActionType.SelectedItem != null)
                 {
-                    int lineIndex = _textEditorRtb.GetLineFromCharIndex(_textEditorRtb.SelectionStart);
-                    int lineStart = _textEditorRtb.GetFirstCharIndexFromLine(lineIndex);
-                    int lineEnd = _textEditorRtb.GetFirstCharIndexFromLine(lineIndex + 1);
-                    if (lineEnd == -1) lineEnd = _textEditorRtb.Text.Length;
-                    
-                    _textEditorRtb.Text = _textEditorRtb.Text.Remove(lineStart, lineEnd - lineStart);
-                    _textEditorRtb.Text = _textEditorRtb.Text.Insert(lineStart, newRule);
+                    if (Enum.TryParse<ActionType>(cmbActionType.SelectedItem.ToString(), out ActionType actionType))
+                    {
+                        action.Type = actionType;
+                    }
+                }
+
+                // Update key (for keyboard actions)
+                if (txtKey.Text.Length > 0)
+                {
+                    try
+                    {
+                        Keys key = (Keys)Enum.Parse(typeof(Keys), txtKey.Text, true);
+                        action.KeyCode = (int)key;
+                    }
+                    catch
+                    {
+                        // Keep previous value if invalid
+                    }
                 }
                 
-                MessageBox.Show("Regla guardada correctamente.", "Éxito");
+                // Refresh the display to show updated action
+                RefreshActionsDisplay();
+                HighlightAction(_selectedActionIndex);
+                
+                MessageBox.Show("Acción actualizada correctamente.", "Éxito");
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al guardar la regla: {ex.Message}", "Error");
+                MessageBox.Show($"Error al guardar: {ex.Message}", "Error");
             }
         }
 
@@ -919,7 +974,7 @@ namespace MacroManager
         /// </summary>
         private void ShowOriginalJSON()
         {
-            if (_textEditorRtb == null) return;
+            if (_actionsPanel == null) return;
             
             if (_currentMacro != null)
             {
@@ -928,11 +983,11 @@ namespace MacroManager
                 { 
                     WriteIndented = true 
                 });
-                _textEditorRtb.Text = json;
+                MessageBox.Show(json, "JSON de la Macro", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else
             {
-                _textEditorRtb.Text = "No hay macro cargada para mostrar JSON";
+                MessageBox.Show("No hay macro cargada para mostrar JSON", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
@@ -941,10 +996,9 @@ namespace MacroManager
         /// </summary>
         private void EditJSON()
         {
-            if (_textEditorRtb == null) return;
+            if (_actionsPanel == null) return;
             
-            _textEditorRtb.Text = "Editar JSON aquí...";
-            _textEditorRtb.Focus();
+            MessageBox.Show("Edición de JSON no disponible en la interfaz de botones. Use el editor de acciones individuales.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         /// <summary>
@@ -952,18 +1006,9 @@ namespace MacroManager
         /// </summary>
         private void ValidateJSON()
         {
-            if (_textEditorRtb == null) return;
+            if (_actionsPanel == null) return;
             
-            try
-            {
-                var json = _textEditorRtb.Text;
-                System.Text.Json.JsonDocument.Parse(json);
-                MessageBox.Show("JSON válido.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"JSON inválido: {ex.Message}", "Error de Validación", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            MessageBox.Show("Validación de JSON no disponible en la interfaz de botones.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         /// <summary>
@@ -971,23 +1016,9 @@ namespace MacroManager
         /// </summary>
         private void FormatJSON()
         {
-            if (_textEditorRtb == null) return;
+            if (_actionsPanel == null) return;
             
-            try
-            {
-                var json = _textEditorRtb.Text;
-                var parsed = System.Text.Json.JsonDocument.Parse(json);
-                var formatted = System.Text.Json.JsonSerializer.Serialize(parsed, new System.Text.Json.JsonSerializerOptions 
-                { 
-                    WriteIndented = true 
-                });
-                _textEditorRtb.Text = formatted;
-                MessageBox.Show("JSON formateado correctamente.", "Formateo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error al formatear JSON: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            MessageBox.Show("Formateo de JSON no disponible en la interfaz de botones.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         /// <summary>
@@ -1036,13 +1067,82 @@ namespace MacroManager
         }
 
         /// <summary>
-        /// Refresh the text editor display
+        /// Refresh the actions display with buttons
         /// </summary>
         private void RefreshActionsDisplay()
         {
-            if (_textEditorRtb == null || _currentMacro == null) return;
+            if (_actionsPanel == null || _currentMacro == null) return;
 
-            _textEditorRtb.Text = GenerateMacroText();
+            // Clear existing buttons
+            _actionsPanel.Controls.Clear();
+            _actionsPanel.Controls.Add(_actionsScrollBar);
+
+            // Create buttons for each action
+            int yPosition = 10;
+            int buttonHeight = 70;
+            int buttonSpacing = 15;
+
+            for (int i = 0; i < _currentMacro.Actions.Count; i++)
+            {
+                var action = _currentMacro.Actions[i];
+                var actionButton = CreateActionButton(action, i, yPosition);
+                _actionsPanel.Controls.Add(actionButton);
+                
+                yPosition += buttonHeight + buttonSpacing;
+            }
+
+            // Update panel height to fit all buttons
+            _actionsPanel.Height = Math.Max(_actionsPanel.Parent.Height, yPosition + 20);
+        }
+
+        /// <summary>
+        /// Create a button for a specific action
+        /// </summary>
+        private Button CreateActionButton(MacroAction action, int index, int yPosition)
+        {
+            string keyDisplay = GetKeyDisplay(action);
+            string actionType = GetActionTypeDisplay(action.Type);
+            
+            var button = new Button
+            {
+                Text = $"#{index + 1}  {actionType}\nTecla: {keyDisplay}\nEspera: {action.DelayMs}ms",
+                Location = new Point(10, yPosition),
+                Size = new Size(_actionsPanel.Width - 50, 70),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                BackColor = _cardBackColor,
+                ForeColor = _panelForeColor,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 10, FontStyle.Regular),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Tag = index, // Store action index for easy reference
+                Cursor = Cursors.Hand
+            };
+
+            // Style the button with better appearance
+            button.FlatAppearance.BorderColor = _accentColor;
+            button.FlatAppearance.BorderSize = 2;
+            button.FlatAppearance.MouseOverBackColor = Color.FromArgb(30, _accentColor.R, _accentColor.G, _accentColor.B);
+            button.FlatAppearance.MouseDownBackColor = Color.FromArgb(60, _accentColor.R, _accentColor.G, _accentColor.B);
+
+            // Add hover effects
+            button.MouseEnter += (s, e) => {
+                if (button.BackColor != _accentColor) // Don't change if already selected
+                {
+                    button.BackColor = Color.FromArgb(30, _accentColor.R, _accentColor.G, _accentColor.B);
+                }
+            };
+            
+            button.MouseLeave += (s, e) => {
+                if (button.BackColor != _accentColor) // Don't change if already selected
+                {
+                    button.BackColor = _cardBackColor;
+                }
+            };
+
+            // Add click event
+            button.Click += (s, e) => SelectAction(index);
+
+            return button;
         }
 
         /// <summary>
@@ -1066,72 +1166,68 @@ namespace MacroManager
         }
 
         /// <summary>
-        /// Add a new action line to the text editor
+        /// Add a new action to the macro
         /// </summary>
         private void AddActionFromText()
         {
-            if (_textEditorRtb == null || _currentMacro == null) return;
+            if (_currentMacro == null) return;
 
-            string keyName = PromptInput("Enter key name (Q, W, A, S, etc.):", "");
+            string keyName = PromptInput("Ingrese nombre de tecla (Q, W, A, S, etc.):", "");
             if (!string.IsNullOrEmpty(keyName))
             {
                 try
                 {
                     Keys key = (Keys)Enum.Parse(typeof(Keys), keyName, true);
-                    string newLine = $"{keyName} -> 0ms";
                     
-                    if (_textEditorRtb.Text.Length > 0)
-                        _textEditorRtb.Text += Environment.NewLine + newLine;
-                    else
-                        _textEditorRtb.Text = newLine;
-
-                    // Update the macro
-                    ParseMacroText(_textEditorRtb.Text);
+                    var newAction = new MacroAction
+                    {
+                        Type = ActionType.KeyPress,
+                        KeyCode = (int)key,
+                        DelayMs = 0
+                    };
+                    
+                    _currentMacro.Actions.Add(newAction);
+                    RefreshActionsDisplay();
                 }
                 catch
                 {
-                    MessageBox.Show("Invalid key name.", "Error");
+                    MessageBox.Show("Nombre de tecla inválido.", "Error");
                 }
             }
         }
 
         /// <summary>
-        /// Remove the current line from text editor
+        /// Remove the selected action from the macro
         /// </summary>
         private void RemoveLineFromText()
         {
-            if (_textEditorRtb == null || _currentMacro == null) return;
+            if (_currentMacro == null || _selectedActionIndex < 0 || _selectedActionIndex >= _currentMacro.Actions.Count) return;
 
-            int cursorPos = _textEditorRtb.SelectionStart;
-            int lineIndex = _textEditorRtb.GetLineFromCharIndex(cursorPos);
-            int lineStart = _textEditorRtb.GetFirstCharIndexFromLine(lineIndex);
-            int lineEnd = _textEditorRtb.GetFirstCharIndexFromLine(lineIndex + 1);
-
-            if (lineEnd == -1)
-                lineEnd = _textEditorRtb.Text.Length;
-
-            _textEditorRtb.Text = _textEditorRtb.Text.Remove(lineStart, Math.Min(lineEnd - lineStart, _textEditorRtb.Text.Length - lineStart));
-            ParseMacroText(_textEditorRtb.Text);
+            _currentMacro.Actions.RemoveAt(_selectedActionIndex);
+            _selectedActionIndex = -1;
+            RefreshActionsDisplay();
         }
 
         /// <summary>
-        /// Duplicate the current line in text editor
+        /// Duplicate the selected action
         /// </summary>
         private void DuplicateLineFromText()
         {
-            if (_textEditorRtb == null || _currentMacro == null) return;
+            if (_currentMacro == null || _selectedActionIndex < 0 || _selectedActionIndex >= _currentMacro.Actions.Count) return;
 
-            int cursorPos = _textEditorRtb.SelectionStart;
-            int lineIndex = _textEditorRtb.GetLineFromCharIndex(cursorPos);
-            int lineStart = _textEditorRtb.GetFirstCharIndexFromLine(lineIndex);
-            int lineEnd = _textEditorRtb.GetFirstCharIndexFromLine(lineIndex + 1);
+            var selectedAction = _currentMacro.Actions[_selectedActionIndex];
+            var duplicatedAction = new MacroAction
+            {
+                Type = selectedAction.Type,
+                KeyCode = selectedAction.KeyCode,
+                X = selectedAction.X,
+                Y = selectedAction.Y,
+                DelayMs = selectedAction.DelayMs,
+                TimestampMs = selectedAction.TimestampMs
+            };
 
-            if (lineEnd == -1)
-                lineEnd = _textEditorRtb.Text.Length;
-
-            string line = _textEditorRtb.Text.Substring(lineStart, lineEnd - lineStart).TrimEnd();
-            _textEditorRtb.Text += Environment.NewLine + line;
-            ParseMacroText(_textEditorRtb.Text);
+            _currentMacro.Actions.Insert(_selectedActionIndex + 1, duplicatedAction);
+            RefreshActionsDisplay();
         }
 
         #region Action Handlers
@@ -1255,70 +1351,84 @@ namespace MacroManager
                 return;
             }
 
-            _ = _player.PlayAsync(_currentMacro);
+            // Update button states
+            _btnPlay.Enabled = false;
+            _btnPause.Enabled = true;
+            _btnStop.Enabled = true;
+
+            // Get loop count (0 = infinite loop, other values = specific count)
+            int repeatCount = (int)_numLoopCount.Value;
+            _ = _player.PlayAsync(_currentMacro, repeatCount);
         }
+
+        private void PauseCurrentMacro()
+        {
+            // Toggle pause state
+            if (_btnPause.Text == "||")
+            {
+                _btnPause.Text = "▶";
+                _player.Pause();
+            }
+            else
+            {
+                _btnPause.Text = "||";
+                _player.Resume();
+            }
+        }
+
+        private void StopCurrentMacro()
+        {
+            _player.Stop();
+            
+            // Reset button states
+            _btnPlay.Enabled = true;
+            _btnPause.Enabled = false;
+            _btnPause.Text = "||";
+            _btnStop.Enabled = false;
+        }
+
 
         private void UndoAction()
         {
-            if (_textEditorRtb != null)
-                _textEditorRtb.Undo();
+            // Undo functionality not applicable to button-based interface
+            MessageBox.Show("Funcionalidad de deshacer no disponible en la interfaz de botones", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void RedoAction()
         {
-            if (_textEditorRtb != null)
-                _textEditorRtb.Redo();
+            // Redo functionality not applicable to button-based interface
+            MessageBox.Show("Funcionalidad de rehacer no disponible en la interfaz de botones", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void CutAction()
         {
-            if (_textEditorRtb != null && _textEditorRtb.SelectionLength > 0)
-                _textEditorRtb.Cut();
+            // Cut functionality not applicable to button-based interface
+            MessageBox.Show("Funcionalidad de cortar no disponible en la interfaz de botones", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void CopyAction()
         {
-            if (_textEditorRtb != null && _textEditorRtb.SelectionLength > 0)
-                _textEditorRtb.Copy();
+            // Copy functionality not applicable to button-based interface
+            MessageBox.Show("Funcionalidad de copiar no disponible en la interfaz de botones", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void PasteAction()
         {
-            if (_textEditorRtb != null)
-                _textEditorRtb.Paste();
+            // Paste functionality not applicable to button-based interface
+            MessageBox.Show("Funcionalidad de pegar no disponible en la interfaz de botones", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void SelectAllAction()
         {
-            if (_textEditorRtb != null)
-                _textEditorRtb.SelectAll();
+            // Select all functionality not applicable to button-based interface
+            MessageBox.Show("Funcionalidad de seleccionar todo no disponible en la interfaz de botones", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private string GenerateMacroText()
         {
-            if (_currentMacro == null) return "";
-
-            var lines = new List<string>();
-            int index = 1;
-            
-            foreach (var action in _currentMacro.Actions)
-            {
-                string keyDisplay = GetKeyDisplay(action);
-                string actionType = GetActionTypeDisplay(action.Type);
-                
-                // Use a marker format for action identification
-                string actionMarker = $"[ACTION_INDEX_{index - 1}]";
-                
-                lines.Add($"┌─────────────────────────────────────┐");
-                lines.Add($"│ #{index}  {actionType} {actionMarker}");
-                lines.Add($"│ Tecla: {keyDisplay}");
-                lines.Add($"│ Espera: {action.DelayMs}ms");
-                lines.Add($"└─────────────────────────────────────┘");
-                lines.Add($"");
-                
-                index++;
-            }
-            return string.Join("\r\n", lines);
+            // This method is no longer used as we display actions as buttons
+            // Keeping for compatibility but not used
+            return "Acciones mostradas como botones";
         }
 
         private string GetActionTypeDisplay(ActionType type)

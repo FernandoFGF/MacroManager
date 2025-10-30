@@ -14,6 +14,8 @@ namespace MacroManager
             _mainForm.AutoScaleMode = AutoScaleMode.Font;
             _mainForm.MinimumSize = new Size(_model.MinWindowWidth, _model.MinWindowHeight);
             _mainForm.Size = new Size(_model.DefaultWindowWidth, _model.DefaultWindowHeight);
+            _mainForm.KeyPreview = true;
+            _mainForm.FormClosing += OnMainFormClosing;
 
             MenuStrip menu = CreateMenuBar();
             _mainForm.MainMenuStrip = menu;
@@ -25,6 +27,8 @@ namespace MacroManager
                 BackColor = _model.PanelBackColor
             };
             _mainForm.Controls.Add(mainContentPanel);
+
+            // Nota: quitamos la banda visual; el estado sin guardar se indicará en el título
 
             _mainForm.Load += (s, e) => {
                 int menuHeight = menu.Height;
@@ -39,6 +43,20 @@ namespace MacroManager
                 }
             };
 
+            // Centro: icono de advertencia (solo cuando hay cambios sin guardar)
+            _unsavedCenterIcon = new Label
+            {
+                AutoSize = true,
+                Text = "⚠",
+                ForeColor = Color.Gold,
+                BackColor = Color.Transparent,
+                Font = new Font("Segoe UI Symbol", 16, FontStyle.Bold),
+                Visible = false
+            };
+            mainContentPanel.Controls.Add(_unsavedCenterIcon);
+
+            mainContentPanel.Resize += (s, e) => PositionUnsavedIcon();
+
             TabControl tabControl = new TabControl
             {
                 Dock = DockStyle.Fill,
@@ -47,7 +65,7 @@ namespace MacroManager
                 ForeColor = _model.PanelForeColor,
                 Font = new Font("Segoe UI", 10, FontStyle.Regular)
             };
-            mainContentPanel.Controls.Add(tabControl);
+            tabControl.Parent = mainContentPanel;
 
             CreateMainMacrosTab(tabControl);
             CreateShortcutsTab(tabControl);
@@ -105,6 +123,7 @@ namespace MacroManager
                 verticalSplit.SplitterDistance = Math.Max(_model.MinimumEditorWidth, (int)(verticalSplit.Width * _model.EditorPercentage));
                 // Asegurar que el panel de acciones se dibuja con tamaños correctos tras layout inicial
                 RefreshActionsDisplay();
+                PositionUnsavedIcon();
             };
 
             tabControl.TabPages.Add(mainTab);
@@ -162,7 +181,7 @@ namespace MacroManager
             fileMenu.DropDownItems.Add("&New Macro (Ctrl+N)", null, (s, e) => _controller.CreateNewMacro());
             fileMenu.DropDownItems.Add("&Record (Ctrl+R)", null, (s, e) => _controller.StartRecording());
             fileMenu.DropDownItems.Add("-");
-            fileMenu.DropDownItems.Add("&Save (Ctrl+S)", null, (s, e) => _controller.SaveCurrentMacro());
+            fileMenu.DropDownItems.Add("&Save (Ctrl+S)", null, (s, e) => SaveAndClearDirty());
             fileMenu.DropDownItems.Add("&Delete (Del)", null, (s, e) => _controller.DeleteCurrentMacro());
             fileMenu.DropDownItems.Add("-");
             fileMenu.DropDownItems.Add("&Export", null, (s, e) => _controller.ExportMacro());
@@ -291,7 +310,7 @@ namespace MacroManager
         {
             if (e.KeyCode == Keys.S && e.Control)
             {
-                _controller.SaveCurrentMacro();
+                SaveAndClearDirty();
                 e.Handled = true;
             }
             else if (e.KeyCode == Keys.N && e.Control)
@@ -303,6 +322,84 @@ namespace MacroManager
             {
                 _controller.StartRecording();
                 e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.Delete)
+            {
+                // Si el TreeView tiene foco y hay macro seleccionada, elimina la macro actual
+                if (_macroTreeView != null && _macroTreeView.Focused && _macroTreeView.SelectedNode?.Tag is MacroConfig)
+                {
+                    _controller.DeleteCurrentMacro();
+                    e.Handled = true;
+                }
+                else
+                {
+                    // Si no, elimina acciones seleccionadas (múltiples o única)
+                    if (_selectedActionIndices != null && _selectedActionIndices.Count > 1)
+                    {
+                        _controller.DeleteActions(_selectedActionIndices);
+                        SetDirty(true);
+                        e.Handled = true;
+                    }
+                    else if (_selectedActionIndex >= 0)
+                    {
+                        _controller.DeleteAction(_selectedActionIndex);
+                        SetDirty(true);
+                        e.Handled = true;
+                    }
+                }
+            }
+        }
+
+        // Dirty state helpers
+        private void SetDirty(bool isDirty)
+        {
+            _hasUnsavedChanges = isDirty;
+            UpdateUnsavedBanner();
+        }
+
+        private void SaveAndClearDirty()
+        {
+            _controller.SaveCurrentMacro();
+            SetDirty(false);
+        }
+
+        private void UpdateUnsavedBanner()
+        {
+            // Mostrar solo icono central; no añadir marcas al título
+            _unsavedCenterIcon.Visible = _hasUnsavedChanges;
+        }
+
+        private void PositionUnsavedIcon()
+        {
+            if (_unsavedCenterIcon == null) return;
+            Control host = _unsavedCenterIcon.Parent;
+            if (host == null) return;
+            int x = Math.Max(0, (host.ClientSize.Width - _unsavedCenterIcon.Width) / 2);
+            int y = 6;
+            _unsavedCenterIcon.Location = new Point(x, y);
+            _unsavedCenterIcon.BringToFront();
+        }
+
+        private void OnMainFormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (_hasUnsavedChanges)
+            {
+                var result = MessageBox.Show(
+                    "Hay cambios sin guardar. ¿Deseas guardar antes de salir?",
+                    "Cambios sin guardar",
+                    MessageBoxButtons.YesNoCancel,
+                    MessageBoxIcon.Warning,
+                    MessageBoxDefaultButton.Button1);
+                if (result == DialogResult.Yes)
+                {
+                    SaveAndClearDirty();
+                    // continuar cierre
+                }
+                else if (result == DialogResult.Cancel)
+                {
+                    e.Cancel = true;
+                }
+                // No = salir sin guardar
             }
         }
 
@@ -325,6 +422,7 @@ namespace MacroManager
                 return;
             }
             RefreshActionsDisplay();
+            SetDirty(true);
         }
 
         private void OnPlaybackStarted(object sender, EventArgs e)

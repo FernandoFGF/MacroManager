@@ -133,7 +133,7 @@ namespace MacroManager
                 Cursor = Cursors.Hand
             };
             btnAdd.FlatAppearance.BorderSize = 0;
-            btnAdd.Click += (s, e) => _controller.AddNewAction();
+            btnAdd.Click += (s, e) => { _controller.AddNewAction(); SetDirty(true); };
             ApplyRetroButtonStyle(btnAdd, _model.AccentColor, _model.BorderColor);
             topButtonRow.Controls.Add(btnAdd);
 
@@ -159,6 +159,7 @@ namespace MacroManager
                 {
                     _controller.DeleteAction(_selectedActionIndex);
                 }
+                SetDirty(true);
             };
             ApplyRetroButtonStyle(btnRemove, Color.FromArgb(150, 30, 30), _model.BorderColor);
             topButtonRow.Controls.Add(btnRemove);
@@ -185,6 +186,7 @@ namespace MacroManager
                 {
                     _controller.DuplicateAction(_selectedActionIndex);
                 }
+                SetDirty(true);
             };
             ApplyRetroButtonStyle(btnDuplicate, _model.AccentColor, _model.BorderColor);
             topButtonRow.Controls.Add(btnDuplicate);
@@ -243,7 +245,7 @@ namespace MacroManager
                 Cursor = Cursors.Hand
             };
             btnSave.FlatAppearance.BorderSize = 0;
-            btnSave.Click += (s, e) => _controller.SaveCurrentMacro();
+            btnSave.Click += (s, e) => SaveAndClearDirty();
             ApplyRetroButtonStyle(btnSave, _model.AccentColor, _model.BorderColor);
             recordingRow.Controls.Add(btnSave);
 
@@ -268,21 +270,38 @@ namespace MacroManager
             _selectedActionIndex = actionIndex;
             var action = _model.CurrentMacro.Actions[actionIndex];
 
-            _txtKey.Text = _model.GetKeyDisplay(action);
-            _txtDelay.Text = action.DelayMs.ToString();
-            _cmbActionType.SelectedItem = action.Type.ToString();
+            _suppressEditorEvents = true;
+            try
+            {
+                _txtKey.Text = _model.GetKeyDisplay(action);
+                _txtDelay.Text = action.DelayMs.ToString();
+                _cmbActionType.SelectedItem = action.Type.ToString();
+            }
+            finally
+            {
+                _suppressEditorEvents = false;
+            }
         }
 
         private void ClearRuleEditor()
         {
             _selectedActionIndex = -1;
-            _txtKey.Text = "";
-            _txtDelay.Text = "0";
-            _cmbActionType.SelectedIndex = 0;
+            _suppressEditorEvents = true;
+            try
+            {
+                _txtKey.Text = "";
+                _txtDelay.Text = "0";
+                _cmbActionType.SelectedIndex = 0;
+            }
+            finally
+            {
+                _suppressEditorEvents = false;
+            }
         }
 
         private void SaveActionChanges()
         {
+            if (_suppressEditorEvents) return;
             if (_selectedActionIndex < 0 || _model.CurrentMacro == null || _selectedActionIndex >= _model.CurrentMacro.Actions.Count)
                 return;
 
@@ -295,6 +314,7 @@ namespace MacroManager
                 }
 
                 _controller.UpdateAction(_selectedActionIndex, _txtKey.Text, delay, actionType);
+                SetDirty(true);
             }
         }
     }

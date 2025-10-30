@@ -136,7 +136,6 @@ namespace MacroManager
             contextMenu.Items.Add(deleteItem);
 
             _macroTreeView.ContextMenuStrip = contextMenu;
-
             _macroTreeView.NodeMouseClick += (s, e) =>
             {
                 if (e.Button == MouseButtons.Right)
@@ -145,6 +144,7 @@ namespace MacroManager
                 }
             };
         }
+
 
         private void RefreshMacroTree()
         {

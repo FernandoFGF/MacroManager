@@ -31,6 +31,10 @@ namespace MacroManager
         private TextBox _txtDelay;
         private ComboBox _cmbActionType;
         
+        // Unsaved changes state and UI
+        private bool _hasUnsavedChanges = false;
+        private Label _unsavedCenterIcon;
+        
         // Selected action tracking (multi-selección)
         private int _selectedActionIndex = -1; // último ancla/click
         private List<int> _selectedActionIndices = new List<int>();
@@ -40,6 +44,9 @@ namespace MacroManager
         private bool _pendingClick = false;
         private int _pendingClickIndex = -1;
         private Point _pendingClickStartPoint;
+        
+        // Editor event suppression (to avoid false dirty when cargando datos)
+        private bool _suppressEditorEvents = false;
 
         /// <summary>
         /// Constructor

@@ -24,6 +24,7 @@ namespace MacroManager
         private Button _btnRecord;
         private Button _btnStopRecord;
         private NumericUpDown _numLoopCount;
+        private ComboBox _cmbTargetWindow;
         private TreeView _macroTreeView;
         
         // Rule editor controls

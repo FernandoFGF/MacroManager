@@ -43,6 +43,8 @@ namespace MacroManager.Services
         /// </summary>
         public event EventHandler<int> PlaybackProgress;
 
+        public Func<bool> IsTargetActiveFunc { get; set; }
+
         /// <summary>
         /// Plays a macro asynchronously
         /// </summary>
@@ -63,19 +65,23 @@ namespace MacroManager.Services
             {
                 int iterations = repeatCount == 0 ? int.MaxValue : repeatCount;
 
-                for (int i = 0; i < iterations; i++)
+                // Ejecutar todo el bucle en un hilo en segundo plano para no capturar el contexto de UI
+                await Task.Run(async () =>
                 {
-                    if (_cancellationTokenSource.Token.IsCancellationRequested)
-                        break;
+                    for (int i = 0; i < iterations; i++)
+                    {
+                        if (_cancellationTokenSource.Token.IsCancellationRequested)
+                            break;
 
-                    await PlayMacroOnceAsync(macro.Actions, _cancellationTokenSource.Token);
-                    
-                    PlaybackProgress?.Invoke(this, i + 1);
+                        await PlayMacroOnceAsync(macro.Actions, _cancellationTokenSource.Token).ConfigureAwait(false);
 
-                    // Small pause between repetitions
-                    if (i < iterations - 1)
-                        await Task.Delay(100, _cancellationTokenSource.Token);
-                }
+                        PlaybackProgress?.Invoke(this, i + 1);
+
+                        // Pequeña pausa entre repeticiones
+                        if (i < iterations - 1)
+                            await Task.Delay(100, _cancellationTokenSource.Token).ConfigureAwait(false);
+                    }
+                }, _cancellationTokenSource.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -105,21 +111,51 @@ namespace MacroManager.Services
 
                 // Wait for pause to be released
                 _pauseEvent.Wait(cancellationToken);
+                if (IsTargetActiveFunc != null && !IsTargetActiveFunc())
+                {
+                    // Auto-pause if target is not active
+                    _isPaused = true;
+                    _pauseEvent.Reset();
+                    _pauseEvent.Wait(cancellationToken);
+                }
 
-                // Calculate delay from last action
+                // Calculate delay from last action (pause-aware)
                 long delay = action.TimestampMs - lastTimestamp;
                 if (delay > 0)
                 {
-                    await Task.Delay((int)delay, cancellationToken);
+                    await DelayRespectingPause((int)delay, cancellationToken).ConfigureAwait(false);
                 }
 
                 // Wait for pause to be released again after delay
                 _pauseEvent.Wait(cancellationToken);
+                if (IsTargetActiveFunc != null && !IsTargetActiveFunc())
+                {
+                    _isPaused = true;
+                    _pauseEvent.Reset();
+                    _pauseEvent.Wait(cancellationToken);
+                }
 
-                // Execute the action
-                ExecuteAction(action);
+                // Execute the action (pause/cancel aware)
+                await ExecuteActionAsync(action, cancellationToken).ConfigureAwait(false);
 
                 lastTimestamp = action.TimestampMs;
+            }
+        }
+
+        /// <summary>
+        /// Delay that reacts quickly to Pause/Resume and cancellation
+        /// </summary>
+        private async Task DelayRespectingPause(int totalMs, CancellationToken token)
+        {
+            int remaining = totalMs;
+            while (remaining > 0)
+            {
+                // If paused, block here until resume or cancellation
+                _pauseEvent.Wait(token);
+
+                int step = remaining < 50 ? remaining : 50;
+                await Task.Delay(step, token).ConfigureAwait(false);
+                remaining -= step;
             }
         }
 
@@ -174,7 +210,7 @@ namespace MacroManager.Services
         /// <summary>
         /// Executes a single action
         /// </summary>
-        private void ExecuteAction(MacroAction action)
+        private async Task ExecuteActionAsync(MacroAction action, CancellationToken token)
         {
             switch (action.Type)
             {
@@ -188,7 +224,7 @@ namespace MacroManager.Services
 
                 case ActionType.KeyPress:
                     SendKeyDown((ushort)action.KeyCode);
-                    Thread.Sleep(50);
+                    await DelayRespectingPause(50, token);
                     SendKeyUp((ushort)action.KeyCode);
                     break;
 
@@ -213,7 +249,7 @@ namespace MacroManager.Services
                     break;
 
                 case ActionType.Delay:
-                    Thread.Sleep(action.DelayMs);
+                    await DelayRespectingPause(action.DelayMs, token);
                     break;
             }
         }

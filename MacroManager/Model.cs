@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using MacroManager.Models;
 using MacroManager.Services;
+using System.Runtime.InteropServices;
 
 namespace MacroManager
 {
@@ -25,6 +26,9 @@ namespace MacroManager
         // Data
         private List<MacroConfig> _loadedMacros;
         private MacroConfig _currentMacro;
+        private IntPtr _targetWindowHandle = IntPtr.Zero;
+        private uint _targetProcessId = 0;
+        private string _targetWindowTitle = "Desktop (global)";
 
         // Events
         public event EventHandler<MacroAction> ActionRecorded;
@@ -34,6 +38,9 @@ namespace MacroManager
         public event EventHandler RecordingStopped;
         public event EventHandler MacrosChanged;
         public event EventHandler CurrentMacroChanged;
+        public event EventHandler PlaybackPaused;
+        public event EventHandler PlaybackResumed;
+        public event EventHandler<bool> ConditionalArmedChanged;
 
         /// <summary>
         /// Constructor with dependency injection
@@ -55,6 +62,10 @@ namespace MacroManager
         public MacroConfig CurrentMacro => _currentMacro;
         public bool IsRecording => _recorder?.IsRecording ?? false;
         public bool IsPlaying => _player?.IsPlaying ?? false;
+        public bool IsPaused => _player?.IsPaused ?? false;
+        public IntPtr TargetWindowHandle { get => _targetWindowHandle; set => _targetWindowHandle = value; }
+        public uint TargetProcessId { get => _targetProcessId; set => _targetProcessId = value; }
+        public string TargetWindowTitle { get => _targetWindowTitle; set => _targetWindowTitle = value; }
 
         // UI Configuration Properties - delegated to service
         public int MinWindowWidth => _uiConfig.MinWindowWidth;
@@ -360,7 +371,6 @@ namespace MacroManager
             {
                 _player.ForceStop();
             }
-
             await _player.PlayAsync(_currentMacro, repeatCount);
         }
 
@@ -370,6 +380,23 @@ namespace MacroManager
         public void StopPlayback()
         {
             _player.ForceStop();
+        }
+
+        public void PausePlayback()
+        {
+            _player.Pause();
+            PlaybackPaused?.Invoke(this, EventArgs.Empty);
+        }
+
+        public void ResumePlayback()
+        {
+            _player.Resume();
+            PlaybackResumed?.Invoke(this, EventArgs.Empty);
+        }
+
+        public void SetConditionalArmed(bool armed)
+        {
+            ConditionalArmedChanged?.Invoke(this, armed);
         }
 
         #endregion
@@ -433,6 +460,29 @@ namespace MacroManager
         #endregion
 
         #region Utility Methods
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll")]
+        private static extern bool IsWindow(IntPtr hWnd);
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+        public bool IsTargetWindowActive()
+        {
+            if (_targetWindowHandle == IntPtr.Zero) return true; // Desktop/global
+            try
+            {
+                var fg = GetForegroundWindow();
+                if (!IsWindow(fg)) return false;
+                if (_targetProcessId != 0)
+                {
+                    GetWindowThreadProcessId(fg, out uint fgPid);
+                    return fgPid == _targetProcessId;
+                }
+                return fg == _targetWindowHandle;
+            }
+            catch { return false; }
+        }
 
         /// <summary>
         /// Get display name for action

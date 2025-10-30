@@ -18,6 +18,10 @@ namespace MacroManager
         private readonly Model _model;
         private readonly View _view;
         private readonly CommandManager _commandManager;
+        private readonly Timer _windowCheckTimer = new Timer { Interval = 200 };
+        private bool _conditionalPlayRequested = false;
+        private int _conditionalRepeatCount = 1;
+        private bool _isCheckingWindow = false;
 
         /// <summary>
         /// Constructor with dependency injection
@@ -27,6 +31,8 @@ namespace MacroManager
             _model = new Model(recorder, player, settingsManager, uiConfig);
             _view = new View(this, _model);
             _commandManager = new CommandManager();
+            // Permitir que el reproductor consulte la ventana activa
+            player.IsTargetActiveFunc = () => _model.IsTargetWindowActive();
             
             // Subscribe to model events
             _model.ActionRecorded += OnActionRecorded;
@@ -34,6 +40,8 @@ namespace MacroManager
             _model.PlaybackStopped += OnPlaybackStopped;
             _model.MacrosChanged += OnMacrosChanged;
             _model.CurrentMacroChanged += OnCurrentMacroChanged;
+
+            _windowCheckTimer.Tick += async (s, e) => await OnWindowCheckTick();
         }
 
         #region Public Interface
@@ -407,22 +415,39 @@ namespace MacroManager
         /// <summary>
         /// Toggle play/pause/stop for current macro
         /// </summary>
-        public async Task TogglePlayPauseStop(int repeatCount = 1)
+        public Task TogglePlayPauseStop(int repeatCount = 1)
         {
             if (_model.CurrentMacro?.Actions.Count == 0)
             {
                 MessageBox.Show("No actions to play.", "Warning");
-                return;
+                return Task.CompletedTask;
             }
 
-            if (_model.IsPlaying)
+            if (_model.IsPlaying || _model.IsPaused)
             {
                 _model.StopPlayback();
+                _conditionalPlayRequested = false;
+                _model.SetConditionalArmed(false);
+                _windowCheckTimer.Stop();
+                return Task.CompletedTask;
+            }
+            // Si ya estaba armado, desarmar con otro clic
+            if (_conditionalPlayRequested)
+            {
+                _conditionalPlayRequested = false;
+                _model.SetConditionalArmed(false);
+                _windowCheckTimer.Stop();
+                return Task.CompletedTask;
             }
             else
             {
-                await _model.PlayCurrentMacro(repeatCount);
+                _conditionalRepeatCount = repeatCount;
+                _conditionalPlayRequested = true;
+                _model.SetConditionalArmed(true);
+                if (!_windowCheckTimer.Enabled) _windowCheckTimer.Start();
+                _ = OnWindowCheckTick();
             }
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -587,7 +612,16 @@ namespace MacroManager
 
         private void OnPlaybackStopped(object sender, EventArgs e)
         {
-            // This is handled by the model, just pass through
+            // Stop timer if nothing to monitor
+            if (!_conditionalPlayRequested && !_model.IsPaused)
+            {
+                _windowCheckTimer.Stop();
+            }
+            if (!_model.IsPlaying && !_model.IsPaused)
+            {
+                _model.SetConditionalArmed(false);
+                _conditionalPlayRequested = false;
+            }
         }
 
         private void OnMacrosChanged(object sender, EventArgs e)
@@ -601,6 +635,49 @@ namespace MacroManager
         }
 
         #endregion
+
+        private Task OnWindowCheckTick()
+        {
+            if (_isCheckingWindow) return Task.CompletedTask; // evitar reentradas
+            _isCheckingWindow = true;
+            try
+            {
+            bool active = _model.IsTargetWindowActive();
+
+            if (_model.IsPlaying && !active)
+            {
+                _model.PausePlayback();
+                // seguir para evaluar si hay que detener el timer
+            }
+
+            if (_model.IsPaused && active)
+            {
+                _model.ResumePlayback();
+                // no return; continuar para comprobar si hay que iniciar
+            }
+
+            if (!_model.IsPlaying && !_model.IsPaused && _conditionalPlayRequested && active)
+            {
+                _conditionalPlayRequested = false; // solo iniciar una vez
+                _model.SetConditionalArmed(false);
+                _ = _model.PlayCurrentMacro(_conditionalRepeatCount);
+            }
+
+            if (!_conditionalPlayRequested && !_model.IsPlaying && !_model.IsPaused)
+            {
+                _windowCheckTimer.Stop();
+            }
+            }
+            catch
+            {
+                // Evitar que excepciones en async void bloqueen el Timer
+            }
+            finally
+            {
+                _isCheckingWindow = false;
+            }
+            return Task.CompletedTask;
+        }
 
         #region Cleanup
 

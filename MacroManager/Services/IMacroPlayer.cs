@@ -35,6 +35,12 @@ namespace MacroManager.Services
         event EventHandler<int> PlaybackProgress;
 
         /// <summary>
+        /// Función opcional para comprobar si la ventana objetivo está activa.
+        /// Si devuelve false durante la reproducción, el reproductor puede pausar.
+        /// </summary>
+        Func<bool> IsTargetActiveFunc { get; set; }
+
+        /// <summary>
         /// Reproduce una macro de forma asíncrona
         /// </summary>
         /// <param name="macro">La configuración de macro a reproducir</param>

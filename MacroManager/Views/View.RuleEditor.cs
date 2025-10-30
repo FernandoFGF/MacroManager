@@ -16,18 +16,7 @@ namespace MacroManager
                 BackColor = _model.PanelBackColor
             };
 
-            Label lblTitle = new Label
-            {
-                Text = "📝 Click on a line in the editor to see and modify action parameters",
-                Dock = DockStyle.Top,
-                Height = 60,
-                Font = new Font("Courier New", 9, FontStyle.Italic),
-                TextAlign = ContentAlignment.MiddleLeft,
-                ForeColor = _model.PanelForeColor,
-                BackColor = _model.PanelBackColor,
-                Padding = new Padding(10, 5, 10, 5)
-            };
-            ruleEditorPanel.Controls.Add(lblTitle);
+            // Removed instructional title to simplify the editor
 
             Label lblKey = new Label
             {
@@ -39,7 +28,6 @@ namespace MacroManager
                 ForeColor = _model.PanelForeColor,
                 BackColor = _model.PanelBackColor
             };
-            ruleEditorPanel.Controls.Add(lblKey);
 
             TextBox txtKey = new TextBox
             {
@@ -52,7 +40,9 @@ namespace MacroManager
                 BorderStyle = BorderStyle.FixedSingle
             };
             txtKey.TextChanged += (s, e) => SaveActionChanges();
+            // Add input first, then label, so label appears above with DockStyle.Top
             ruleEditorPanel.Controls.Add(txtKey);
+            ruleEditorPanel.Controls.Add(lblKey);
 
             Label lblDelay = new Label
             {
@@ -64,7 +54,6 @@ namespace MacroManager
                 ForeColor = _model.PanelForeColor,
                 BackColor = _model.PanelBackColor
             };
-            ruleEditorPanel.Controls.Add(lblDelay);
 
             TextBox txtDelay = new TextBox
             {
@@ -78,6 +67,7 @@ namespace MacroManager
             };
             txtDelay.TextChanged += (s, e) => SaveActionChanges();
             ruleEditorPanel.Controls.Add(txtDelay);
+            ruleEditorPanel.Controls.Add(lblDelay);
 
             Label lblActionType = new Label
             {
@@ -89,7 +79,6 @@ namespace MacroManager
                 ForeColor = _model.PanelForeColor,
                 BackColor = _model.PanelBackColor
             };
-            ruleEditorPanel.Controls.Add(lblActionType);
 
             ComboBox cmbActionType = new ComboBox
             {
@@ -106,6 +95,7 @@ namespace MacroManager
             cmbActionType.SelectedIndex = 0;
             cmbActionType.SelectedIndexChanged += (s, e) => SaveActionChanges();
             ruleEditorPanel.Controls.Add(cmbActionType);
+            ruleEditorPanel.Controls.Add(lblActionType);
 
             Panel buttonPanel = new Panel
             {

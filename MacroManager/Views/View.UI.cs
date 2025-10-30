@@ -3,6 +3,9 @@ using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using MacroManager.Models;
+using System.Runtime.InteropServices;
+using System.Collections.Generic;
+using System.Text;
 
 namespace MacroManager
 {
@@ -278,7 +281,7 @@ namespace MacroManager
                 Font = new Font("Segoe UI", 12, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand,
-                Margin = new Padding(0, 0, 15, 0),
+				Margin = new Padding(0, 10, 15, 0),
                 TextAlign = ContentAlignment.MiddleCenter
             };
             _btnPlay.FlatAppearance.BorderSize = 0;
@@ -334,8 +337,36 @@ namespace MacroManager
                 Margin = new Padding(0)
             };
 
+            // Target window selector
+            Label lblTarget = new Label
+            {
+                Text = "🎯 Target",
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                ForeColor = _model.PanelForeColor,
+                BackColor = _model.PanelBackColor,
+                TextAlign = ContentAlignment.MiddleCenter,
+				Margin = new Padding(10, 14, 5, 0)
+            };
+
+            _cmbTargetWindow = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Width = 150,
+                Margin = new Padding(0, 10, 0, 0),
+                BackColor = _model.CardBackColor,
+                ForeColor = Color.Yellow,
+                FlatStyle = FlatStyle.Flat,
+                DrawMode = DrawMode.OwnerDrawFixed
+            };
+            PopulateOpenWindows();
+            _cmbTargetWindow.SelectedIndexChanged += (s, e) => OnTargetWindowChanged();
+            _cmbTargetWindow.DrawItem += DrawTargetComboItem;
+
             centerPanel.Controls.Add(_btnPlay);
             centerPanel.Controls.Add(loopContainer);
+            centerPanel.Controls.Add(lblTarget);
+            centerPanel.Controls.Add(_cmbTargetWindow);
 
             void CenterChildren()
             {
@@ -353,6 +384,102 @@ namespace MacroManager
 
             return playbackPanel;
         }
+
+        // Enumeración de ventanas abiertas y gestión de selección
+        private void PopulateOpenWindows()
+        {
+            _cmbTargetWindow?.Items.Clear();
+            _cmbTargetWindow?.Items.Add(new WindowItem("Desktop (global)", IntPtr.Zero, 0));
+            foreach (var item in EnumerateTopLevelWindows())
+            {
+                _cmbTargetWindow.Items.Add(item);
+            }
+            _cmbTargetWindow.SelectedIndex = 0;
+        }
+
+        private void OnTargetWindowChanged()
+        {
+            if (_cmbTargetWindow?.SelectedItem is WindowItem item)
+            {
+                _model.TargetWindowHandle = item.Handle;
+                _model.TargetProcessId = item.ProcessId;
+                _model.TargetWindowTitle = item.Title;
+            }
+        }
+
+        private sealed class WindowItem
+        {
+            public string Title { get; }
+            public IntPtr Handle { get; }
+            public uint ProcessId { get; }
+            public WindowItem(string title, IntPtr handle, uint processId)
+            {
+                Title = title;
+                Handle = handle;
+                ProcessId = processId;
+            }
+            public override string ToString() => Title;
+        }
+
+        private void DrawTargetComboItem(object sender, DrawItemEventArgs e)
+        {
+            var cb = sender as ComboBox;
+            if (cb == null)
+                return;
+            e.DrawBackground();
+            Color back = (e.State & DrawItemState.Selected) == DrawItemState.Selected ? _model.AccentColor : _model.CardBackColor;
+            using (var b = new SolidBrush(back))
+            {
+                e.Graphics.FillRectangle(b, e.Bounds);
+            }
+            if (e.Index >= 0 && e.Index < cb.Items.Count)
+            {
+                string text = cb.Items[e.Index].ToString();
+                using (var f = new SolidBrush(Color.Yellow))
+                {
+                    e.Graphics.DrawString(text, cb.Font, f, e.Bounds);
+                }
+            }
+            e.DrawFocusRectangle();
+        }
+
+        private IEnumerable<WindowItem> EnumerateTopLevelWindows()
+        {
+            List<WindowItem> list = new List<WindowItem>();
+            IntPtr shellWindow = GetShellWindow();
+            EnumWindows((hWnd, lParam) =>
+            {
+                if (hWnd == shellWindow) return true;
+                if (!IsWindowVisible(hWnd)) return true;
+                int length = GetWindowTextLength(hWnd);
+                if (length == 0) return true;
+                StringBuilder sb = new StringBuilder(length + 1);
+                GetWindowText(hWnd, sb, sb.Capacity);
+                string title = sb.ToString();
+                if (!string.IsNullOrWhiteSpace(title))
+                {
+                    GetWindowThreadProcessId(hWnd, out uint pid);
+                    list.Add(new WindowItem(title, hWnd, pid));
+                }
+                return true;
+            }, IntPtr.Zero);
+            return list;
+        }
+
+        // Win32 P/Invoke para enumerar ventanas
+        private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+        [DllImport("user32.dll")]
+        private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+        [DllImport("user32.dll")]
+        private static extern bool IsWindowVisible(IntPtr hWnd);
+        [DllImport("user32.dll")]
+        private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
+        [DllImport("user32.dll")]
+        private static extern int GetWindowTextLength(IntPtr hWnd);
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetShellWindow();
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
         // Eventos
         private void OnKeyDown(object sender, KeyEventArgs e)
@@ -457,6 +584,9 @@ namespace MacroManager
             _model.ActionRecorded += OnActionRecorded;
             _model.PlaybackStarted += OnPlaybackStarted;
             _model.PlaybackStopped += OnPlaybackStopped;
+            _model.PlaybackPaused += OnPlaybackPaused;
+            _model.PlaybackResumed += OnPlaybackResumed;
+            _model.ConditionalArmedChanged += OnConditionalArmedChanged;
             _model.RecordingStarted += OnRecordingStarted;
             _model.RecordingStopped += OnRecordingStopped;
             _model.MacrosChanged += OnMacrosChanged;
@@ -494,6 +624,50 @@ namespace MacroManager
             }
             _btnPlay.Text = "▶️";
             _btnPlay.BackColor = Color.FromArgb(33, 150, 243);
+        }
+
+        private void OnPlaybackPaused(object sender, EventArgs e)
+        {
+            if (_mainForm.InvokeRequired)
+            {
+                _mainForm.Invoke(new Action(() => OnPlaybackPaused(sender, e)));
+                return;
+            }
+            _btnPlay.Text = "⏸️";
+            _btnPlay.BackColor = Color.FromArgb(255, 152, 0); // ámbar para pausa/armado
+        }
+
+        private void OnPlaybackResumed(object sender, EventArgs e)
+        {
+            if (_mainForm.InvokeRequired)
+            {
+                _mainForm.Invoke(new Action(() => OnPlaybackResumed(sender, e)));
+                return;
+            }
+            _btnPlay.Text = "⏹️";
+            _btnPlay.BackColor = Color.FromArgb(244, 67, 54);
+        }
+
+        private void OnConditionalArmedChanged(object sender, bool armed)
+        {
+            if (_mainForm.InvokeRequired)
+            {
+                _mainForm.Invoke(new Action(() => OnConditionalArmedChanged(sender, armed)));
+                return;
+            }
+            if (!_model.IsPlaying && !_model.IsPaused)
+            {
+                if (armed)
+                {
+                    _btnPlay.Text = "⏸️"; // armado/esperando ventana
+                    _btnPlay.BackColor = Color.FromArgb(255, 152, 0);
+                }
+                else
+                {
+                    _btnPlay.Text = "▶️";
+                    _btnPlay.BackColor = Color.FromArgb(33, 150, 243);
+                }
+            }
         }
 
         private void OnRecordingStarted(object sender, EventArgs e)

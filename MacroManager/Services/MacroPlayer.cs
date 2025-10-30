@@ -17,6 +17,7 @@ namespace MacroManager.Services
         private bool _isPaused;
         private CancellationTokenSource _cancellationTokenSource;
         private ManualResetEventSlim _pauseEvent;
+        private const int MinActionGapMs = 2; // seguridad para evitar bucles sin respiro
 
         /// <summary>
         /// Indicates if currently playing a macro
@@ -79,7 +80,12 @@ namespace MacroManager.Services
 
                         // Pequeña pausa entre repeticiones
                         if (i < iterations - 1)
-                            await Task.Delay(100, _cancellationTokenSource.Token).ConfigureAwait(false);
+                        {
+                            // Incluso en loop infinito, meter una pausa mínima para no saturar CPU/SO
+                            int interDelay = repeatCount == 0 ? 10 : 100;
+                            if (interDelay > 0)
+                                await Task.Delay(interDelay, _cancellationTokenSource.Token).ConfigureAwait(false);
+                        }
                     }
                 }, _cancellationTokenSource.Token).ConfigureAwait(false);
             }
@@ -102,8 +108,6 @@ namespace MacroManager.Services
         /// </summary>
         private async Task PlayMacroOnceAsync(List<MacroAction> actions, CancellationToken cancellationToken)
         {
-            long lastTimestamp = 0;
-
             foreach (var action in actions)
             {
                 if (cancellationToken.IsCancellationRequested)
@@ -119,11 +123,11 @@ namespace MacroManager.Services
                     _pauseEvent.Wait(cancellationToken);
                 }
 
-                // Calculate delay from last action (pause-aware)
-                long delay = action.TimestampMs - lastTimestamp;
-                if (delay > 0)
+                // Aplicar Delay configurado o, si es 0, un gap mínimo de seguridad
+                int waitMs = action.DelayMs > 0 ? action.DelayMs : MinActionGapMs;
+                if (waitMs > 0)
                 {
-                    await DelayRespectingPause((int)delay, cancellationToken).ConfigureAwait(false);
+                    await DelayRespectingPause(waitMs, cancellationToken).ConfigureAwait(false);
                 }
 
                 // Wait for pause to be released again after delay
@@ -137,8 +141,6 @@ namespace MacroManager.Services
 
                 // Execute the action (pause/cancel aware)
                 await ExecuteActionAsync(action, cancellationToken).ConfigureAwait(false);
-
-                lastTimestamp = action.TimestampMs;
             }
         }
 

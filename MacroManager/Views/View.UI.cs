@@ -20,9 +20,7 @@ namespace MacroManager
             _mainForm.KeyPreview = true;
             _mainForm.FormClosing += OnMainFormClosing;
 
-            MenuStrip menu = CreateMenuBar();
-            _mainForm.MainMenuStrip = menu;
-            _mainForm.Controls.Add(menu);
+            // Top menu disabled for a cleaner appearance
 
             Panel mainContentPanel = new Panel
             {
@@ -31,22 +29,22 @@ namespace MacroManager
             };
             _mainForm.Controls.Add(mainContentPanel);
 
-            // Nota: quitamos la banda visual; el estado sin guardar se indicará en el título
+            // Note: we removed the visual banner; the unsaved state will be indicated in the title
 
             _mainForm.Load += (s, e) => {
-                int menuHeight = menu.Height;
+                int menuHeight = 0;
                 mainContentPanel.Location = new Point(0, menuHeight);
                 mainContentPanel.Size = new Size(_mainForm.ClientSize.Width, _mainForm.ClientSize.Height - menuHeight);
             };
             
             _mainForm.Resize += (s, e) => {
-                if (mainContentPanel != null && menu != null) {
-                    int menuHeight = menu.Height;
+                if (mainContentPanel != null) {
+                    int menuHeight = 0;
                     mainContentPanel.Size = new Size(_mainForm.ClientSize.Width, _mainForm.ClientSize.Height - menuHeight);
                 }
             };
 
-            // Centro: icono de advertencia (solo cuando hay cambios sin guardar)
+            // Center: warning icon (only when there are unsaved changes)
             _unsavedCenterIcon = new Label
             {
                 AutoSize = true,
@@ -124,7 +122,7 @@ namespace MacroManager
             _mainForm.Load += (s, e) => {
                 horizontalSplit.SplitterDistance = Math.Max(_model.MinimumTreeViewWidth, (int)(horizontalSplit.Width * _model.TreeViewPercentage));
                 verticalSplit.SplitterDistance = Math.Max(_model.MinimumEditorWidth, (int)(verticalSplit.Width * _model.EditorPercentage));
-                // Asegurar que el panel de acciones se dibuja con tamaños correctos tras layout inicial
+                // Ensure the actions panel draws with correct sizes after initial layout
                 RefreshActionsDisplay();
                 PositionUnsavedIcon();
             };
@@ -242,7 +240,7 @@ namespace MacroManager
             miSelectAll.Click += (s, e) => _controller.SelectAllAction();
             editMenu.DropDownItems.Add(miSelectAll);
 
-            // Asignar clicks para los items con Tag Action
+            // Assign clicks for items with Tag Action
             foreach (ToolStripItem item in editMenu.DropDownItems)
             {
                 if (item is ToolStripMenuItem tsmi && tsmi.Tag is Action act)
@@ -304,7 +302,7 @@ namespace MacroManager
                 Size = new Size(60, 22),
                 Minimum = 0,
                 Maximum = 999,
-                Value = 1,
+                Value = 0,
                 Font = new Font("Segoe UI", 9),
                 BackColor = _model.CardBackColor,
                 ForeColor = _model.PanelForeColor,
@@ -337,7 +335,7 @@ namespace MacroManager
                 Margin = new Padding(0)
             };
 
-            // Target window selector
+            // Target window selector (container to align label above dropdown like Loop)
             Label lblTarget = new Label
             {
                 Text = "🎯 Target",
@@ -345,15 +343,13 @@ namespace MacroManager
                 Font = new Font("Segoe UI", 9, FontStyle.Bold),
                 ForeColor = _model.PanelForeColor,
                 BackColor = _model.PanelBackColor,
-                TextAlign = ContentAlignment.MiddleCenter,
-				Margin = new Padding(10, 14, 5, 0)
+                TextAlign = ContentAlignment.MiddleCenter
             };
 
             _cmbTargetWindow = new ComboBox
             {
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 Width = 150,
-                Margin = new Padding(0, 10, 0, 0),
                 BackColor = _model.CardBackColor,
                 ForeColor = Color.Yellow,
                 FlatStyle = FlatStyle.Flat,
@@ -363,10 +359,21 @@ namespace MacroManager
             _cmbTargetWindow.SelectedIndexChanged += (s, e) => OnTargetWindowChanged();
             _cmbTargetWindow.DrawItem += DrawTargetComboItem;
 
+            Panel targetContainer = new Panel
+            {
+                Size = new Size(170, 45),
+                BackColor = _model.PanelBackColor,
+                Margin = new Padding(10, 0, 0, 0)
+            };
+            lblTarget.Location = new Point(10, 2);
+            lblTarget.TextAlign = ContentAlignment.MiddleCenter;
+            targetContainer.Controls.Add(lblTarget);
+            _cmbTargetWindow.Location = new Point(10, 17);
+            targetContainer.Controls.Add(_cmbTargetWindow);
+
             centerPanel.Controls.Add(_btnPlay);
             centerPanel.Controls.Add(loopContainer);
-            centerPanel.Controls.Add(lblTarget);
-            centerPanel.Controls.Add(_cmbTargetWindow);
+            centerPanel.Controls.Add(targetContainer);
 
             void CenterChildren()
             {
@@ -385,7 +392,7 @@ namespace MacroManager
             return playbackPanel;
         }
 
-        // Enumeración de ventanas abiertas y gestión de selección
+        // Enumeration of open windows and selection handling
         private void PopulateOpenWindows()
         {
             _cmbTargetWindow?.Items.Clear();
@@ -466,7 +473,7 @@ namespace MacroManager
             return list;
         }
 
-        // Win32 P/Invoke para enumerar ventanas
+        // Win32 P/Invoke to enumerate windows
         private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
         [DllImport("user32.dll")]
         private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
@@ -481,7 +488,7 @@ namespace MacroManager
         [DllImport("user32.dll")]
         private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
-        // Eventos
+        // Events
         private void OnKeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.S && e.Control)
@@ -501,7 +508,7 @@ namespace MacroManager
             }
             else if (e.KeyCode == Keys.Delete)
             {
-                // Si el TreeView tiene foco y hay macro seleccionada, elimina la macro actual
+                // If the TreeView has focus and there is a selected macro, delete the current macro
                 if (_macroTreeView != null && _macroTreeView.Focused && _macroTreeView.SelectedNode?.Tag is MacroConfig)
                 {
                     _controller.DeleteCurrentMacro();
@@ -509,7 +516,7 @@ namespace MacroManager
                 }
                 else
                 {
-                    // Si no, elimina acciones seleccionadas (múltiples o única)
+                    // Otherwise, delete selected actions (multiple or single)
                     if (_selectedActionIndices != null && _selectedActionIndices.Count > 1)
                     {
                         _controller.DeleteActions(_selectedActionIndices);
@@ -541,7 +548,7 @@ namespace MacroManager
 
         private void UpdateUnsavedBanner()
         {
-            // Mostrar solo icono central; no añadir marcas al título
+            // Show only the central icon; do not add markers to the title
             _unsavedCenterIcon.Visible = _hasUnsavedChanges;
         }
 
@@ -561,21 +568,21 @@ namespace MacroManager
             if (_hasUnsavedChanges)
             {
                 var result = MessageBox.Show(
-                    "Hay cambios sin guardar. ¿Deseas guardar antes de salir?",
-                    "Cambios sin guardar",
+                    "There are unsaved changes. Do you want to save before exiting?",
+                    "Unsaved changes",
                     MessageBoxButtons.YesNoCancel,
                     MessageBoxIcon.Warning,
                     MessageBoxDefaultButton.Button1);
                 if (result == DialogResult.Yes)
                 {
                     SaveAndClearDirty();
-                    // continuar cierre
+                    // continue closing
                 }
                 else if (result == DialogResult.Cancel)
                 {
                     e.Cancel = true;
                 }
-                // No = salir sin guardar
+                // No = exit without saving
             }
         }
 
@@ -634,7 +641,7 @@ namespace MacroManager
                 return;
             }
             _btnPlay.Text = "⏸️";
-            _btnPlay.BackColor = Color.FromArgb(255, 152, 0); // ámbar para pausa/armado
+            _btnPlay.BackColor = Color.FromArgb(255, 152, 0); // amber for pause/armed
         }
 
         private void OnPlaybackResumed(object sender, EventArgs e)
@@ -659,7 +666,7 @@ namespace MacroManager
             {
                 if (armed)
                 {
-                    _btnPlay.Text = "⏸️"; // armado/esperando ventana
+                    _btnPlay.Text = "⏸️"; // armed/waiting for window
                     _btnPlay.BackColor = Color.FromArgb(255, 152, 0);
                 }
                 else

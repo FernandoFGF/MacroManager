@@ -16,7 +16,7 @@ namespace MacroManager
         public MainForm()
         {
             InitializeComponent();
-            this.Text = "MacroManager - Multi-Tab Editor";
+            this.Text = "MacroManager";
             this.BackColor = Color.FromArgb(12, 32, 12);
             this.ForeColor = Color.FromArgb(0, 255, 0);
         }

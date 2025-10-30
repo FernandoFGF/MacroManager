@@ -343,6 +343,24 @@ namespace MacroManager
         }
 
         /// <summary>
+        /// Delete multiple actions by indices
+        /// </summary>
+        public void DeleteActions(IEnumerable<int> actionIndices)
+        {
+            if (_model.CurrentMacro == null || actionIndices == null) return;
+            var list = actionIndices.Distinct().Where(i => i >= 0 && i < _model.CurrentMacro.Actions.Count).OrderByDescending(i => i).ToList();
+            if (list.Count == 0)
+            {
+                MessageBox.Show("Please select actions to delete.", "Info");
+                return;
+            }
+            foreach (var idx in list)
+            {
+                _model.DeleteAction(idx);
+            }
+        }
+
+        /// <summary>
         /// Duplicate action at index
         /// </summary>
         public void DuplicateAction(int actionIndex)
@@ -354,6 +372,24 @@ namespace MacroManager
             }
 
             _model.DuplicateAction(actionIndex);
+        }
+
+        /// <summary>
+        /// Duplicate multiple actions by indices
+        /// </summary>
+        public void DuplicateActions(IEnumerable<int> actionIndices)
+        {
+            if (_model.CurrentMacro == null || actionIndices == null) return;
+            var list = actionIndices.Distinct().Where(i => i >= 0 && i < _model.CurrentMacro.Actions.Count).OrderBy(i => i).ToList();
+            if (list.Count == 0)
+            {
+                MessageBox.Show("Please select actions to duplicate.", "Info");
+                return;
+            }
+            foreach (var idx in list)
+            {
+                _model.DuplicateAction(idx);
+            }
         }
 
         /// <summary>

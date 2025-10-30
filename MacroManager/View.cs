@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Linq;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using MacroManager.Models;
@@ -31,8 +32,15 @@ namespace MacroManager
         private TextBox _txtDelay;
         private ComboBox _cmbActionType;
         
-        // Selected action tracking
-        private int _selectedActionIndex = -1;
+        // Selected action tracking (multi-selección)
+        private int _selectedActionIndex = -1; // último ancla/click
+        private List<int> _selectedActionIndices = new List<int>();
+        private bool _isDraggingSelection = false;
+        private Point _dragStartPoint;
+        private Rectangle _dragSelectionRect = Rectangle.Empty;
+        private bool _pendingClick = false;
+        private int _pendingClickIndex = -1;
+        private Point _pendingClickStartPoint;
 
         /// <summary>
         /// Constructor
@@ -455,6 +463,11 @@ namespace MacroManager
             };
 
             _actionsPanel.Controls.Add(_actionsScrollBar);
+            // Eventos para selección con rectángulo
+            _actionsPanel.MouseDown += OnActionsPanelMouseDown;
+            _actionsPanel.MouseMove += OnActionsPanelMouseMove;
+            _actionsPanel.MouseUp += OnActionsPanelMouseUp;
+            _actionsPanel.Paint += OnActionsPanelPaint;
             parent.Controls.Add(_actionsPanel);
         }
 
@@ -589,14 +602,15 @@ namespace MacroManager
                 Text = "➕",
                 Location = new Point(10, 5),
                 Size = new Size(70, 35),
-                BackColor = Color.FromArgb(76, 175, 80),
-                ForeColor = Color.White,
+                BackColor = _model.CardBackColor,
+                ForeColor = _model.PanelForeColor,
                 Font = new Font("Courier New", 10, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };
             btnAdd.FlatAppearance.BorderSize = 0;
             btnAdd.Click += (s, e) => _controller.AddNewAction();
+            ApplyRetroButtonStyle(btnAdd, _model.AccentColor, _model.BorderColor);
             topButtonRow.Controls.Add(btnAdd);
 
             Button btnRemove = new Button
@@ -604,14 +618,26 @@ namespace MacroManager
                 Text = "➖",
                 Location = new Point(85, 5),
                 Size = new Size(70, 35),
-                BackColor = Color.FromArgb(244, 67, 54),
-                ForeColor = Color.White,
+                BackColor = _model.CardBackColor,
+                ForeColor = _model.PanelForeColor,
                 Font = new Font("Courier New", 10, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };
             btnRemove.FlatAppearance.BorderSize = 0;
-            btnRemove.Click += (s, e) => _controller.DeleteAction(_selectedActionIndex);
+            btnRemove.Click += (s, e) =>
+            {
+                if (_selectedActionIndices.Count > 1)
+                {
+                    _controller.DeleteActions(_selectedActionIndices);
+                }
+                else
+                {
+                    _controller.DeleteAction(_selectedActionIndex);
+                }
+            };
+            // Danger tone: deeper green-shadowed red to fit theme
+            ApplyRetroButtonStyle(btnRemove, Color.FromArgb(150, 30, 30), _model.BorderColor);
             topButtonRow.Controls.Add(btnRemove);
 
             Button btnDuplicate = new Button
@@ -619,14 +645,25 @@ namespace MacroManager
                 Text = "📋",
                 Location = new Point(160, 5),
                 Size = new Size(70, 35),
-                BackColor = Color.FromArgb(33, 150, 243),
-                ForeColor = Color.White,
+                BackColor = _model.CardBackColor,
+                ForeColor = _model.PanelForeColor,
                 Font = new Font("Courier New", 10, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };
             btnDuplicate.FlatAppearance.BorderSize = 0;
-            btnDuplicate.Click += (s, e) => _controller.DuplicateAction(_selectedActionIndex);
+            btnDuplicate.Click += (s, e) =>
+            {
+                if (_selectedActionIndices.Count > 1)
+                {
+                    _controller.DuplicateActions(_selectedActionIndices);
+                }
+                else
+                {
+                    _controller.DuplicateAction(_selectedActionIndex);
+                }
+            };
+            ApplyRetroButtonStyle(btnDuplicate, _model.AccentColor, _model.BorderColor);
             topButtonRow.Controls.Add(btnDuplicate);
 
 
@@ -646,14 +683,15 @@ namespace MacroManager
                 Text = "🔴",
                 Location = new Point(10, 5),
                 Size = new Size(70, 35),
-                BackColor = Color.FromArgb(244, 67, 54),
-                ForeColor = Color.White,
+                BackColor = _model.CardBackColor,
+                ForeColor = _model.PanelForeColor,
                 Font = new Font("Courier New", 10, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };
             _btnRecord.FlatAppearance.BorderSize = 0;
             _btnRecord.Click += (s, e) => _controller.StartRecording();
+            ApplyRetroButtonStyle(_btnRecord, Color.FromArgb(150, 30, 30), _model.BorderColor);
             recordingRow.Controls.Add(_btnRecord);
 
             // Stop Record Button
@@ -662,8 +700,8 @@ namespace MacroManager
                 Text = "⏹️",
                 Location = new Point(85, 5),
                 Size = new Size(70, 35),
-                BackColor = Color.FromArgb(158, 158, 158),
-                ForeColor = Color.White,
+                BackColor = _model.CardBackColor,
+                ForeColor = _model.PanelForeColor,
                 Font = new Font("Courier New", 10, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand,
@@ -671,6 +709,7 @@ namespace MacroManager
             };
             _btnStopRecord.FlatAppearance.BorderSize = 0;
             _btnStopRecord.Click += (s, e) => _controller.StopRecording();
+            ApplyRetroButtonStyle(_btnStopRecord, Color.FromArgb(60, 60, 60), _model.BorderColor);
             recordingRow.Controls.Add(_btnStopRecord);
 
             // Save Button
@@ -679,14 +718,15 @@ namespace MacroManager
                 Text = "💾",
                 Location = new Point(160, 5),
                 Size = new Size(70, 35),
-                BackColor = Color.FromArgb(76, 175, 80),
-                ForeColor = Color.White,
+                BackColor = _model.CardBackColor,
+                ForeColor = _model.PanelForeColor,
                 Font = new Font("Courier New", 10, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };
             btnSave.FlatAppearance.BorderSize = 0;
             btnSave.Click += (s, e) => _controller.SaveCurrentMacro();
+            ApplyRetroButtonStyle(btnSave, _model.AccentColor, _model.BorderColor);
             recordingRow.Controls.Add(btnSave);
 
             buttonPanel.Controls.Add(recordingRow);
@@ -713,15 +753,11 @@ namespace MacroManager
                 Height = 60
             };
 
-            // Create main controls container
-            FlowLayoutPanel controlsPanel = new FlowLayoutPanel
+            // Create main controls container (fill)
+            Panel controlsPanel = new Panel
             {
                 Dock = DockStyle.Fill,
-                FlowDirection = FlowDirection.LeftToRight,
-                WrapContents = false,
-                AutoSize = false,
-                Padding = new Padding(0),
-                AutoScroll = false
+                BackColor = _model.PanelBackColor
             };
 
             // Play/Pause/Stop Button (Solo icono) - Cambia entre play, pausa y stop
@@ -729,16 +765,17 @@ namespace MacroManager
             {
                 Text = "▶️",
                 Size = new Size(45, 35),
-                BackColor = Color.FromArgb(33, 150, 243),
-                ForeColor = Color.White,
+                BackColor = _model.CardBackColor,
+                ForeColor = _model.PanelForeColor,
                 Font = new Font("Segoe UI", 12, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand,
-                Margin = new Padding(0, 12, 15, 12),
+                Margin = new Padding(0, 0, 15, 0),
                 TextAlign = ContentAlignment.MiddleCenter
             };
             _btnPlay.FlatAppearance.BorderSize = 0;
             _btnPlay.Click += async (s, e) => await TogglePlayPauseStop();
+            ApplyRetroButtonStyle(_btnPlay, _model.AccentColor, _model.BorderColor);
 
             // Loop Label
             Label lblLoop = new Label
@@ -771,7 +808,7 @@ namespace MacroManager
             {
                 Size = new Size(80, 45),
                 BackColor = _model.PanelBackColor,
-                Margin = new Padding(0, 7, 0, 7)
+                Margin = new Padding(0, 0, 0, 0)
             };
             
             // Position loop label at top (centered horizontally)
@@ -783,9 +820,33 @@ namespace MacroManager
             _numLoopCount.Location = new Point(10, 20);
             loopContainer.Controls.Add(_numLoopCount);
 
-            // Add controls to panel
-            controlsPanel.Controls.Add(_btnPlay);
-            controlsPanel.Controls.Add(loopContainer);
+            // Create inner flow panel that auto-sizes and será centrado
+            FlowLayoutPanel centerPanel = new FlowLayoutPanel
+            {
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                BackColor = _model.PanelBackColor,
+                Padding = new Padding(0),
+                Margin = new Padding(0)
+            };
+
+            centerPanel.Controls.Add(_btnPlay);
+            centerPanel.Controls.Add(loopContainer);
+
+            // Centrado horizontal y vertical dentro del área
+            void CenterChildren()
+            {
+                int x = Math.Max(0, (controlsPanel.Width - centerPanel.Width) / 2);
+                int y = Math.Max(0, (controlsPanel.Height - centerPanel.Height) / 2);
+                centerPanel.Location = new Point(x, y);
+            }
+
+            controlsPanel.Controls.Add(centerPanel);
+            controlsPanel.Resize += (s, e) => CenterChildren();
+            playbackPanel.Resize += (s, e) => CenterChildren();
+            _mainForm.Load += (s, e) => CenterChildren();
 
             playbackPanel.Controls.Add(controlsPanel);
 
@@ -945,6 +1006,77 @@ namespace MacroManager
 
             // Update panel height to fit all buttons
             _actionsPanel.Height = Math.Max(_actionsPanel.Parent.Height, yPosition + 20);
+
+            // Reaplicar resaltado tras reconstrucción
+            UpdateSelectionHighlight();
+        }
+
+        /// <summary>
+        /// Aplica estilo retro con relieve a botones y efectos hover/press
+        /// </summary>
+        private void ApplyRetroButtonStyle(Button button, Color accentColor, Color borderColor)
+        {
+            bool isPressed = false;
+
+            // Efectos de hover/press respetando la paleta verde
+            button.MouseEnter += (s, e) =>
+            {
+                if (!isPressed)
+                {
+                    button.BackColor = Color.FromArgb(30, accentColor.R, accentColor.G, accentColor.B);
+                }
+            };
+
+            button.MouseLeave += (s, e) =>
+            {
+                if (!isPressed)
+                {
+                    button.BackColor = _model.CardBackColor;
+                }
+            };
+
+            button.MouseDown += (s, e) =>
+            {
+                isPressed = true;
+                button.BackColor = Color.FromArgb(60, accentColor.R, accentColor.G, accentColor.B);
+                button.Invalidate();
+            };
+
+            button.MouseUp += (s, e) =>
+            {
+                isPressed = false;
+                button.BackColor = Color.FromArgb(30, accentColor.R, accentColor.G, accentColor.B);
+                button.Invalidate();
+            };
+
+            // Dibuja un borde con luz/sombra para simular relieve
+            button.Paint += (s, e) =>
+            {
+                var g = e.Graphics;
+                var rect = new Rectangle(0, 0, button.Width - 1, button.Height - 1);
+
+                using (var borderPen = new Pen(borderColor))
+                {
+                    g.DrawRectangle(borderPen, rect);
+                }
+
+                // Bevel interno
+                Color light = Color.FromArgb(Math.Min(255, borderColor.R + 60), Math.Min(255, borderColor.G + 60), Math.Min(255, borderColor.B + 60));
+                Color dark = Color.FromArgb(Math.Max(0, borderColor.R - 60), Math.Max(0, borderColor.G - 60), Math.Max(0, borderColor.B - 60));
+
+                using (var penTopLeft = new Pen(isPressed ? dark : light))
+                using (var penBottomRight = new Pen(isPressed ? light : dark))
+                {
+                    // Top
+                    g.DrawLine(penTopLeft, 1, 1, rect.Width - 1, 1);
+                    // Left
+                    g.DrawLine(penTopLeft, 1, 1, 1, rect.Height - 1);
+                    // Bottom
+                    g.DrawLine(penBottomRight, 1, rect.Height - 1, rect.Width - 1, rect.Height - 1);
+                    // Right
+                    g.DrawLine(penBottomRight, rect.Width - 1, 1, rect.Width - 1, rect.Height - 1);
+                }
+            };
         }
 
         /// <summary>
@@ -991,8 +1123,10 @@ namespace MacroManager
                 }
             };
 
-            // Add click event
-            button.Click += (s, e) => SelectAction(index);
+            // Selección con Ctrl/Shift como en explorador
+            button.MouseDown += (s, e) => HandleActionButtonMouseDown(index, e, (Control)s);
+            button.MouseMove += (s, e) => HandleChildMouseMove((Control)s, e);
+            button.MouseUp += (s, e) => HandleChildMouseUp((Control)s, e);
 
             return button;
         }
@@ -1006,13 +1140,142 @@ namespace MacroManager
                 return;
 
             _selectedActionIndex = actionIndex;
+            _selectedActionIndices.Clear();
+            _selectedActionIndices.Add(actionIndex);
+            UpdateSelectionHighlight();
+            LoadActionToEditor(actionIndex);
+        }
 
-            // Highlight the selected button
+        private void HandleActionButtonMouseDown(int index, MouseEventArgs e, Control sourceControl)
+        {
+            bool ctrl = (Control.ModifierKeys & Keys.Control) == Keys.Control;
+            bool shift = (Control.ModifierKeys & Keys.Shift) == Keys.Shift;
+
+            if (shift && _selectedActionIndex >= 0)
+            {
+                SelectRange(_selectedActionIndex, index);
+            }
+            else if (ctrl)
+            {
+                ToggleSelection(index);
+                _selectedActionIndex = index; // mover ancla al último click
+            }
+            else
+            {
+                // Deferir selección simple hasta MouseUp, para permitir drag
+                _pendingClick = true;
+                _pendingClickIndex = index;
+                // punto en coordenadas del panel
+                Point screen = sourceControl.PointToScreen(e.Location);
+                _pendingClickStartPoint = _actionsPanel.PointToClient(screen);
+            }
+
+            UpdateEditorForSelection();
+        }
+
+        private void HandleChildMouseMove(Control child, MouseEventArgs e)
+        {
+            // Convertir la posición del hijo al panel
+            Point screen = child.PointToScreen(e.Location);
+            Point pt = _actionsPanel.PointToClient(screen);
+
+            if (_pendingClick && e.Button == MouseButtons.Left && Distance(pt, _pendingClickStartPoint) > 4 &&
+                !(Control.ModifierKeys.HasFlag(Keys.Control) || Control.ModifierKeys.HasFlag(Keys.Shift)))
+            {
+                // Iniciar selección por rectángulo desde un botón
+                _isDraggingSelection = true;
+                _dragStartPoint = _pendingClickStartPoint;
+                _dragSelectionRect = Rectangle.Empty;
+                _pendingClick = false;
+                _actionsPanel.Capture = true;
+            }
+
+            if (_isDraggingSelection)
+            {
+                UpdateDragRectangle(pt);
+            }
+        }
+
+        private void HandleChildMouseUp(Control child, MouseEventArgs e)
+        {
+            Point screen = child.PointToScreen(e.Location);
+            Point pt = _actionsPanel.PointToClient(screen);
+
+            if (_isDraggingSelection)
+            {
+                // Finalizar drag como si fuese en el panel
+                OnActionsPanelMouseUp(_actionsPanel, new MouseEventArgs(e.Button, e.Clicks, pt.X, pt.Y, e.Delta));
+                return;
+            }
+
+            if (_pendingClick)
+            {
+                _pendingClick = false;
+                SetSingleSelection(_pendingClickIndex);
+            }
+        }
+
+        private int Distance(Point a, Point b)
+        {
+            int dx = a.X - b.X;
+            int dy = a.Y - b.Y;
+            return (int)Math.Sqrt(dx * dx + dy * dy);
+        }
+
+        private void SetSingleSelection(int index)
+        {
+            _selectedActionIndices.Clear();
+            if (index >= 0) _selectedActionIndices.Add(index);
+            _selectedActionIndex = index;
+            UpdateSelectionHighlight();
+            UpdateEditorForSelection();
+        }
+
+        private void ToggleSelection(int index)
+        {
+            if (_selectedActionIndices.Contains(index))
+                _selectedActionIndices.Remove(index);
+            else
+                _selectedActionIndices.Add(index);
+            UpdateSelectionHighlight();
+            UpdateEditorForSelection();
+        }
+
+        private void SelectRange(int anchor, int end)
+        {
+            if (anchor < 0) { SetSingleSelection(end); return; }
+            int start = Math.Min(anchor, end);
+            int last = Math.Max(anchor, end);
+            _selectedActionIndices = Enumerable.Range(start, last - start + 1).ToList();
+            _selectedActionIndex = end;
+            UpdateSelectionHighlight();
+            UpdateEditorForSelection();
+        }
+
+        private void SelectByRectangle(Rectangle rect)
+        {
+            List<int> hits = new List<int>();
+            foreach (Control control in _actionsPanel.Controls)
+            {
+                if (control is Button button && button.Tag is int idx)
+                {
+                    if (rect.IntersectsWith(button.Bounds))
+                        hits.Add(idx);
+                }
+            }
+            _selectedActionIndices = hits;
+            if (hits.Count > 0) _selectedActionIndex = hits.Last();
+            UpdateSelectionHighlight();
+            UpdateEditorForSelection();
+        }
+
+        private void UpdateSelectionHighlight()
+        {
             foreach (Control control in _actionsPanel.Controls)
             {
                 if (control is Button button && button.Tag is int index)
                 {
-                    if (index == actionIndex)
+                    if (_selectedActionIndices.Contains(index))
                     {
                         button.BackColor = _model.AccentColor;
                         button.ForeColor = Color.White;
@@ -1024,9 +1287,98 @@ namespace MacroManager
                     }
                 }
             }
+            _actionsPanel.Invalidate();
+        }
 
-            // Load action to editor
-            LoadActionToEditor(actionIndex);
+        // Rubber-band selection handlers
+        private void OnActionsPanelMouseDown(object sender, MouseEventArgs e)
+        {
+            // Empezar drag sólo si clic en espacio vacío
+            var hit = _actionsPanel.GetChildAtPoint(e.Location);
+            if (hit == null || !(hit is Button))
+            {
+                _isDraggingSelection = true;
+                _dragStartPoint = e.Location;
+                _dragSelectionRect = new Rectangle(e.Location, Size.Empty);
+                _actionsPanel.Capture = true;
+            }
+            else if (!(Control.ModifierKeys.HasFlag(Keys.Control) || Control.ModifierKeys.HasFlag(Keys.Shift)))
+            {
+                // Si se hace clic en vacío sin modificadores y no se inicia drag, limpiar selección
+                // (el caso de botón se gestiona en HandleActionButtonMouseDown)
+            }
+        }
+
+        private void OnActionsPanelMouseMove(object sender, MouseEventArgs e)
+        {
+            if (!_isDraggingSelection) return;
+            UpdateDragRectangle(e.Location);
+        }
+
+        private void UpdateDragRectangle(Point current)
+        {
+            int x = Math.Min(_dragStartPoint.X, current.X);
+            int y = Math.Min(_dragStartPoint.Y, current.Y);
+            int w = Math.Abs(current.X - _dragStartPoint.X);
+            int h = Math.Abs(current.Y - _dragStartPoint.Y);
+            _dragSelectionRect = new Rectangle(x, y, w, h);
+            _actionsPanel.Invalidate();
+        }
+
+        private void OnActionsPanelMouseUp(object sender, MouseEventArgs e)
+        {
+            if (!_isDraggingSelection) return;
+            _isDraggingSelection = false;
+            _actionsPanel.Capture = false;
+            if (_dragSelectionRect.Width > 2 && _dragSelectionRect.Height > 2)
+            {
+                bool ctrl = (Control.ModifierKeys & Keys.Control) == Keys.Control;
+                if (ctrl)
+                {
+                    // Combinar con selección actual
+                    List<int> prev = new List<int>(_selectedActionIndices);
+                    SelectByRectangle(_dragSelectionRect);
+                    _selectedActionIndices = prev.Union(_selectedActionIndices).ToList();
+                    UpdateSelectionHighlight();
+                    UpdateEditorForSelection();
+                }
+                else
+                {
+                    SelectByRectangle(_dragSelectionRect);
+                }
+            }
+            else
+            {
+                // Click en área vacía: limpiar selección
+                SetSingleSelection(-1);
+            }
+            _dragSelectionRect = Rectangle.Empty;
+            _actionsPanel.Invalidate();
+        }
+
+        private void OnActionsPanelPaint(object sender, PaintEventArgs e)
+        {
+            if (_dragSelectionRect != Rectangle.Empty)
+            {
+                using (var brush = new SolidBrush(Color.FromArgb(40, _model.AccentColor)))
+                using (var pen = new Pen(_model.AccentColor, 1))
+                {
+                    e.Graphics.FillRectangle(brush, _dragSelectionRect);
+                    e.Graphics.DrawRectangle(pen, _dragSelectionRect);
+                }
+            }
+        }
+
+        private void UpdateEditorForSelection()
+        {
+            if (_selectedActionIndices.Count == 1)
+            {
+                LoadActionToEditor(_selectedActionIndices[0]);
+            }
+            else
+            {
+                ClearRuleEditor();
+            }
         }
 
         /// <summary>

@@ -116,7 +116,7 @@ namespace MacroManager
 
             Panel playbackPanel = CreatePlaybackPanelControl();
             playbackPanel.Dock = DockStyle.Bottom;
-            playbackPanel.Height = _model.PlaybackPanelHeight;
+            playbackPanel.Height = Math.Max(_model.PlaybackPanelHeight, 120);
             verticalSplit.Panel1.Controls.Add(playbackPanel);
 
             _mainForm.Load += (s, e) => {
@@ -285,6 +285,7 @@ namespace MacroManager
             _btnPlay.FlatAppearance.BorderSize = 0;
             _btnPlay.Click += async (s, e) => await TogglePlayPauseStop();
             ApplyRetroButtonStyle(_btnPlay, _model.AccentColor, _model.BorderColor);
+            if (_toolTip != null) _toolTip.SetToolTip(_btnPlay, "Reproducir/Pausar/Detener");
 
             Label lblLoop = new Label
             {
@@ -309,6 +310,7 @@ namespace MacroManager
                 BorderStyle = BorderStyle.FixedSingle,
                 Margin = new Padding(0, 2, 0, 0)
             };
+            if (_toolTip != null) _toolTip.SetToolTip(_numLoopCount, "0 = infinito; >0 repeticiones");
 
             Panel loopContainer = new Panel
             {
@@ -358,6 +360,7 @@ namespace MacroManager
             PopulateOpenWindows();
             _cmbTargetWindow.SelectedIndexChanged += (s, e) => OnTargetWindowChanged();
             _cmbTargetWindow.DrawItem += DrawTargetComboItem;
+            if (_toolTip != null) _toolTip.SetToolTip(_cmbTargetWindow, "Ventana objetivo para reproducir");
 
             Panel targetContainer = new Panel
             {
@@ -375,14 +378,92 @@ namespace MacroManager
             centerPanel.Controls.Add(loopContainer);
             centerPanel.Controls.Add(targetContainer);
 
+            // Hotkey row: sits below the three controls
+            Panel hotkeyPanel = new Panel
+            {
+                AutoSize = false,
+                Height = 28,
+                Width = 400,
+                BackColor = _model.PanelBackColor
+            };
+            Label lblHotkey = new Label
+            {
+                Text = "Shortcut:",
+                Location = new Point(0, 5),
+                Size = new Size(90, 20),
+                ForeColor = _model.PanelForeColor,
+                BackColor = _model.PanelBackColor,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold)
+            };
+            TextBox txtHotkey = new TextBox
+            {
+                Location = new Point(95, 3),
+                Size = new Size(160, 22),
+                ReadOnly = true,
+                TabStop = false,
+                BackColor = _model.CardBackColor,
+                ForeColor = _model.PanelForeColor,
+                BorderStyle = BorderStyle.FixedSingle
+            };
+            txtHotkey.Cursor = Cursors.Hand;
+            if (_toolTip != null) _toolTip.SetToolTip(txtHotkey, "Click para configurar atajo");
+
+            // Captura de combinación: al enfocar el textbox, escuchamos KeyDown del formulario para permitir Ctrl+... etc.
+            bool capturing = false;
+            txtHotkey.MouseDown += (s, e) => { capturing = true; txtHotkey.Text = "Press keys..."; controlsPanel.Focus(); };
+            _mainForm.KeyDown += (s, e) =>
+            {
+                if (!capturing) return;
+                if (e.KeyCode == Keys.Escape)
+                {
+                    capturing = false; txtHotkey.Text = ""; controlsPanel.Focus();
+                    e.Handled = true; return;
+                }
+                // Ignora puras teclas modificadoras
+                if (e.KeyCode == Keys.ControlKey || e.KeyCode == Keys.Menu || e.KeyCode == Keys.ShiftKey || e.KeyCode == Keys.LWin || e.KeyCode == Keys.RWin)
+                {
+                    e.Handled = true; return;
+                }
+                bool ctrl = e.Control; bool alt = e.Alt; bool shift = e.Shift; bool win = (Control.ModifierKeys & (Keys.LWin | Keys.RWin)) != 0;
+                Keys key = e.KeyCode;
+                string text = $"{(ctrl?"Ctrl+":"")}{(alt?"Alt+":"")}{(shift?"Shift+":"")}{(win?"Win+":"")}{key}";
+                txtHotkey.Text = text;
+                capturing = false;
+                controlsPanel.Focus();
+
+                bool ok = (_mainForm as MainForm).RegisterGlobalHotKey(ctrl, alt, shift, win, key);
+                if (!ok && _toolTip != null)
+                {
+                    _toolTip.SetToolTip(txtHotkey, "No se pudo registrar. Prueba otra combinación.");
+                }
+                e.Handled = true;
+            };
+            // Registro por defecto Ctrl+M
+            (_mainForm as MainForm).RegisterGlobalHotKey(true, false, false, false, Keys.M);
+            txtHotkey.Text = "Ctrl+M";
+
+            // Cuando se dispare el hotkey, hacemos toggle play/stop inmediato
+            (_mainForm as MainForm).GlobalHotKeyPressed += async (s, e) => await _controller.TogglePlayPauseStop((int)_numLoopCount.Value);
+
+            hotkeyPanel.Controls.Add(lblHotkey);
+            hotkeyPanel.Controls.Add(txtHotkey);
+
             void CenterChildren()
             {
-                int x = Math.Max(0, (controlsPanel.Width - centerPanel.Width) / 2);
-                int y = Math.Max(0, (controlsPanel.Height - centerPanel.Height) / 2);
-                centerPanel.Location = new Point(x, y);
+                // Colocar los tres controles centrados, y el panel de hotkey justo debajo centrado también
+                int centerX = Math.Max(0, (controlsPanel.Width - centerPanel.Width) / 2);
+                int centerY = Math.Max(0, (controlsPanel.Height - centerPanel.Height) / 2) - 10;
+                centerPanel.Location = new Point(centerX, centerY);
+                // Alinear el bloque de toggle al borde derecho del contenedor
+                int spacing = 5;
+                int totalWidth = lblHotkey.Width + spacing + txtHotkey.Width; // ancho real del grupo dentro del panel
+                if (totalWidth > 0) hotkeyPanel.Width = totalWidth;
+                int marginRight = 70; // ajusta este margen si quieres más/menos aire
+                hotkeyPanel.Location = new Point(Math.Max(0, controlsPanel.ClientSize.Width - hotkeyPanel.Width - marginRight), centerPanel.Bottom + 6);
             }
 
             controlsPanel.Controls.Add(centerPanel);
+            controlsPanel.Controls.Add(hotkeyPanel);
             controlsPanel.Resize += (s, e) => CenterChildren();
             playbackPanel.Resize += (s, e) => CenterChildren();
             _mainForm.Load += (s, e) => CenterChildren();

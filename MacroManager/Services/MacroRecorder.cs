@@ -31,7 +31,7 @@ namespace MacroManager.Services
         private Stopwatch _recordingTimer;
         // UI shortcut suppression window to avoid recording Ctrl+R, etc.
         private DateTime _suppressKeysUntilUtc = DateTime.MinValue;
-        private HashSet<int> _suppressedVkCodes = new HashSet<int> { 0x11, 0xA2, 0xA3, 0x52 }; // VK_CONTROL, VK_LCONTROL, VK_RCONTROL, 'R'
+        private HashSet<int> _suppressedVkCodes = new HashSet<int> { 0x11, 0xA2, 0xA3, 0x52, 0x53, 0x4E }; // + 'S' (0x53), 'N' (0x4E)
 
         // Event raised when a new action is recorded
         public event EventHandler<MacroAction> ActionRecorded;
@@ -92,8 +92,8 @@ namespace MacroManager.Services
             _suppressKeysUntilUtc = DateTime.UtcNow.AddMilliseconds(400);
 
             // Uninstall hooks
-            UnhookWindowsHookEx(_keyboardHookID);
-            UnhookWindowsHookEx(_mouseHookID);
+            try { UnhookWindowsHookEx(_keyboardHookID); } catch { }
+            try { UnhookWindowsHookEx(_mouseHookID); } catch { }
             _keyboardHookID = IntPtr.Zero;
             _mouseHookID = IntPtr.Zero;
         }
@@ -105,7 +105,8 @@ namespace MacroManager.Services
         {
             if (nCode >= 0 && _isRecording)
             {
-                int vkCode = Marshal.ReadInt32(lParam);
+                KBDLLHOOKSTRUCT kbd = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
+                int vkCode = kbd.vkCode;
 
                 // Ventana corta para ignorar específicamente las teclas del atajo (Ctrl + R)
                 if (DateTime.UtcNow <= _suppressKeysUntilUtc && _suppressedVkCodes.Contains(vkCode))
@@ -120,11 +121,11 @@ namespace MacroManager.Services
                 };
 
                 // Determine action type based on wParam
-                if (wParam == (IntPtr)0x0100) // WM_KEYDOWN
+                if (wParam == (IntPtr)0x0100 || wParam == (IntPtr)0x0104) // WM_KEYDOWN / WM_SYSKEYDOWN
                 {
                     action.Type = ActionType.KeyDown;
                 }
-                else if (wParam == (IntPtr)0x0101) // WM_KEYUP
+                else if (wParam == (IntPtr)0x0101 || wParam == (IntPtr)0x0105) // WM_KEYUP / WM_SYSKEYUP
                 {
                     action.Type = ActionType.KeyUp;
                 }
@@ -215,6 +216,16 @@ namespace MacroManager.Services
                 return SetWindowsHookEx(hookType, proc, GetModuleHandle(curModule.ModuleName), 0);
             }
         }
+        [StructLayout(LayoutKind.Sequential)]
+        private struct KBDLLHOOKSTRUCT
+        {
+            public int vkCode;
+            public int scanCode;
+            public int flags;
+            public int time;
+            public IntPtr dwExtraInfo;
+        }
+
 
         // Windows API structures and functions
         [StructLayout(LayoutKind.Sequential)]
@@ -259,7 +270,13 @@ namespace MacroManager.Services
         /// </summary>
         ~MacroRecorder()
         {
-            StopRecording();
+            try { StopRecording(); } catch { }
+        }
+
+        public void Dispose()
+        {
+            try { StopRecording(); } catch { }
+            GC.SuppressFinalize(this);
         }
     }
 }

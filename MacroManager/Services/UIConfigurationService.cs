@@ -18,7 +18,7 @@ namespace MacroManager.Services
         private int _defaultWindowWidth = 1200;
         private int _defaultWindowHeight = 800;
         private double _treeViewPercentage = 0.25;
-        private double _editorPercentage = 0.6666;
+        private double _editorPercentage = 0.80;
         private int _playbackPanelHeight = 80;
         private int _minimumTreeViewWidth = 200;
         private int _minimumEditorWidth = 400;
@@ -104,6 +104,8 @@ namespace MacroManager.Services
                     Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "uiconfig.json"),
                     // Third: In the MacroManager folder (source location)
                     Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "MacroManager", "uiconfig.json"),
+                    // Fourth: In AppData per-user configuration
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MacroManager", "uiconfig.json"),
                     // Fourth: Try finding it relative to source
                     "uiconfig.json"
                 };

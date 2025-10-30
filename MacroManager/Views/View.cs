@@ -26,6 +26,7 @@ namespace MacroManager
         private NumericUpDown _numLoopCount;
         private ComboBox _cmbTargetWindow;
         private TreeView _macroTreeView;
+        private ToolTip _toolTip;
         
         // Rule editor controls
         private TextBox _txtKey;
@@ -65,6 +66,7 @@ namespace MacroManager
         public void Initialize()
         {
             SetupUI();
+            _toolTip = new ToolTip();
             SubscribeToModelEvents();
         }
 

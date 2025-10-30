@@ -18,6 +18,8 @@ namespace MacroManager.Services
         private CancellationTokenSource _cancellationTokenSource;
         private ManualResetEventSlim _pauseEvent;
         private const int MinActionGapMs = 2; // seguridad para evitar bucles sin respiro
+        [DllImport("user32.dll")] private static extern uint MapVirtualKey(uint uCode, uint uMapType);
+        private const uint MAPVK_VK_TO_VSC = 0x0;
 
         /// <summary>
         /// Indicates if currently playing a macro
@@ -99,6 +101,8 @@ namespace MacroManager.Services
                 _isPaused = false;
                 _pauseEvent?.Dispose();
                 _pauseEvent = null;
+                _cancellationTokenSource?.Dispose();
+                _cancellationTokenSource = null;
                 PlaybackStopped?.Invoke(this, EventArgs.Empty);
             }
         }
@@ -207,6 +211,8 @@ namespace MacroManager.Services
             _isPaused = false;
             _cancellationTokenSource?.Cancel();
             _pauseEvent?.Set(); // Release any waiting threads
+            _cancellationTokenSource?.Dispose();
+            _cancellationTokenSource = null;
         }
 
         /// <summary>
@@ -238,11 +244,23 @@ namespace MacroManager.Services
                     SendMouseUp(action.X, action.Y, MouseButton.Left);
                     break;
 
+                case ActionType.MouseLeftClick:
+                    SendMouseDown(action.X, action.Y, MouseButton.Left);
+                    await DelayRespectingPause(50, token);
+                    SendMouseUp(action.X, action.Y, MouseButton.Left);
+                    break;
+
                 case ActionType.MouseRightDown:
                     SendMouseDown(action.X, action.Y, MouseButton.Right);
                     break;
 
                 case ActionType.MouseRightUp:
+                    SendMouseUp(action.X, action.Y, MouseButton.Right);
+                    break;
+
+                case ActionType.MouseRightClick:
+                    SendMouseDown(action.X, action.Y, MouseButton.Right);
+                    await DelayRespectingPause(50, token);
                     SendMouseUp(action.X, action.Y, MouseButton.Right);
                     break;
 
@@ -268,6 +286,7 @@ namespace MacroManager.Services
         private const int INPUT_KEYBOARD = 1;
         private const int INPUT_MOUSE = 0;
         private const uint KEYEVENTF_KEYUP = 0x0002;
+        private const uint KEYEVENTF_SCANCODE = 0x0008;
         private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
         private const uint MOUSEEVENTF_LEFTUP = 0x0004;
         private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
@@ -322,11 +341,12 @@ namespace MacroManager.Services
         /// </summary>
         private void SendKeyDown(ushort keyCode)
         {
+            ushort scan = (ushort)MapVirtualKey(keyCode, MAPVK_VK_TO_VSC);
             INPUT[] inputs = new INPUT[1];
             inputs[0].type = INPUT_KEYBOARD;
-            inputs[0].u.ki.wVk = keyCode;
-            inputs[0].u.ki.dwFlags = 0;
-
+            inputs[0].u.ki.wVk = 0;
+            inputs[0].u.ki.wScan = scan;
+            inputs[0].u.ki.dwFlags = KEYEVENTF_SCANCODE;
             SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
         }
 
@@ -335,11 +355,12 @@ namespace MacroManager.Services
         /// </summary>
         private void SendKeyUp(ushort keyCode)
         {
+            ushort scan = (ushort)MapVirtualKey(keyCode, MAPVK_VK_TO_VSC);
             INPUT[] inputs = new INPUT[1];
             inputs[0].type = INPUT_KEYBOARD;
-            inputs[0].u.ki.wVk = keyCode;
-            inputs[0].u.ki.dwFlags = KEYEVENTF_KEYUP;
-
+            inputs[0].u.ki.wVk = 0;
+            inputs[0].u.ki.wScan = scan;
+            inputs[0].u.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
             SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
         }
 

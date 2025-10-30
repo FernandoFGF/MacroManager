@@ -126,10 +126,11 @@ namespace MacroManager
         {
             string keyDisplay = _model.GetKeyDisplay(action);
             string actionType = _model.GetActionTypeDisplay(action.Type);
+            string coords = (action.Type.ToString().StartsWith("Mouse")) ? $"\nPos: {action.X},{action.Y}" : string.Empty;
             
             var button = new Button
             {
-                Text = $"#{index + 1}  {actionType}\nKey: {keyDisplay}\nDelay: {action.DelayMs}ms",
+                Text = $"#{index + 1}  {actionType}\nKey: {keyDisplay}\nDelay: {action.DelayMs}ms{coords}",
                 Location = new Point(10, yPosition),
                 Size = new Size(Math.Max(0, _actionsPanel.ClientSize.Width - 20), 70),
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,

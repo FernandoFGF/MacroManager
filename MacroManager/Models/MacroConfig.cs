@@ -117,8 +117,10 @@ namespace MacroManager.Models
         KeyPress,       // Key pressed and released
         MouseLeftDown,  // Left button pressed
         MouseLeftUp,    // Left button released
+        MouseLeftClick, // Left click (down+up)
         MouseRightDown, // Right button pressed
         MouseRightUp,   // Right button released
+        MouseRightClick,// Right click (down+up)
         MouseMove,      // Mouse movement
         Delay           // Pause/wait
     }

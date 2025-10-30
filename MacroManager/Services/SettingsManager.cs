@@ -62,7 +62,8 @@ namespace MacroManager.Services
                 // Find the existing file for this macro (by ID)
                 string existingFilePath = FindMacroFile(macro.Id);
                 
-                // Use the macro name as filename (with .json extension)
+                // Normalize name (trim) and use as filename (with .json extension)
+                macro.Name = (macro.Name ?? "").Trim();
                 string newFileName = $"{SanitizeFileName(macro.Name)}.json";
                 string newFilePath = Path.Combine(_macrosDirectory, newFileName);
 
@@ -79,13 +80,15 @@ namespace MacroManager.Services
                     }
                 }
 
-                // Check if there's already a file with this name but different ID
-                if (File.Exists(newFilePath))
+                // Check if there's already a file with same name (case-insensitive) but different ID
+                string collisionPath = Directory.GetFiles(_macrosDirectory, "*.json")
+                    .FirstOrDefault(f => string.Equals(Path.GetFileName(f), newFileName, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrEmpty(collisionPath))
                 {
                     // Load the existing file to check if it's the same macro
                     try
                     {
-                        string existingJson = File.ReadAllText(newFilePath);
+                        string existingJson = File.ReadAllText(collisionPath);
                         var existingMacro = JsonConvert.DeserializeObject<MacroConfig>(existingJson);
                         
                         // If it's a different macro, add a number suffix
@@ -118,7 +121,18 @@ namespace MacroManager.Services
                 }
 
                 string json = JsonConvert.SerializeObject(macro, _jsonSettings);
-                File.WriteAllText(newFilePath, json);
+                // Write atomically: write temp then replace
+                string tempPath = Path.Combine(_macrosDirectory, $".{Guid.NewGuid():N}.tmp");
+                File.WriteAllText(tempPath, json);
+                if (File.Exists(newFilePath))
+                {
+                    // Backup not needed; replace in place
+                    File.Replace(tempPath, newFilePath, null);
+                }
+                else
+                {
+                    File.Move(tempPath, newFilePath);
+                }
 
                 return true;
             }

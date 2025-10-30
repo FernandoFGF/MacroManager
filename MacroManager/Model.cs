@@ -371,6 +371,16 @@ namespace MacroManager
             {
                 _player.ForceStop();
             }
+            // Update last used and persist before playback
+            try
+            {
+                _currentMacro.LastUsed = DateTime.Now;
+                _ = SaveCurrentMacro();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"PlayCurrentMacro persist LastUsed failed: {ex.Message}");
+            }
             await _player.PlayAsync(_currentMacro, repeatCount);
         }
 
@@ -481,7 +491,7 @@ namespace MacroManager
                 }
                 return fg == _targetWindowHandle;
             }
-            catch { return false; }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"IsTargetWindowActive error: {ex.Message}"); return false; }
         }
 
         /// <summary>
@@ -514,8 +524,10 @@ namespace MacroManager
                 ActionType.KeyPress => "⌨️  Key Press",
                 ActionType.KeyDown => "⬇️  Key Down",
                 ActionType.KeyUp => "⬆️  Key Up",
+                ActionType.MouseLeftClick => "🖱️  Mouse Left Click",
                 ActionType.MouseLeftDown => "🖱️  Mouse Click",
                 ActionType.MouseLeftUp => "🖱️  Mouse Release",
+                ActionType.MouseRightClick => "🖱️  Mouse Right Click",
                 ActionType.MouseRightDown => "🖱️  Right Click",
                 ActionType.MouseRightUp => "🖱️  Right Release",
                 ActionType.MouseMove => "↔️  Mouse Move",

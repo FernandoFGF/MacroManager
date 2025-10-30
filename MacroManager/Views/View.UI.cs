@@ -178,26 +178,75 @@ namespace MacroManager
             MenuStrip menu = new MenuStrip();
 
             ToolStripMenuItem fileMenu = new ToolStripMenuItem("&File");
-            fileMenu.DropDownItems.Add("&New Macro (Ctrl+N)", null, (s, e) => _controller.CreateNewMacro());
-            fileMenu.DropDownItems.Add("&Record (Ctrl+R)", null, (s, e) => _controller.StartRecording());
+
+            var miNew = new ToolStripMenuItem("&New Macro")
+            {
+                ShortcutKeys = Keys.Control | Keys.N,
+                ShowShortcutKeys = true
+            };
+            miNew.Click += (s, e) => _controller.CreateNewMacro();
+            fileMenu.DropDownItems.Add(miNew);
+
+            var miRecord = new ToolStripMenuItem("&Record")
+            {
+                ShortcutKeys = Keys.Control | Keys.R,
+                ShowShortcutKeys = true
+            };
+            miRecord.Click += (s, e) => _controller.StartRecording();
+            fileMenu.DropDownItems.Add(miRecord);
+
             fileMenu.DropDownItems.Add("-");
-            fileMenu.DropDownItems.Add("&Save (Ctrl+S)", null, (s, e) => SaveAndClearDirty());
+
+            var miSave = new ToolStripMenuItem("&Save")
+            {
+                ShortcutKeys = Keys.Control | Keys.S,
+                ShowShortcutKeys = true
+            };
+            miSave.Click += (s, e) => SaveAndClearDirty();
+            fileMenu.DropDownItems.Add(miSave);
             fileMenu.DropDownItems.Add("&Delete (Del)", null, (s, e) => _controller.DeleteCurrentMacro());
             fileMenu.DropDownItems.Add("-");
-            fileMenu.DropDownItems.Add("&Export", null, (s, e) => _controller.ExportMacro());
-            fileMenu.DropDownItems.Add("&Import", null, (s, e) => _controller.ImportMacro());
-            fileMenu.DropDownItems.Add("-");
+            // Removed Export/Import options
             fileMenu.DropDownItems.Add("E&xit (Alt+F4)", null, (s, e) => _mainForm.Close());
 
             ToolStripMenuItem editMenu = new ToolStripMenuItem("&Edit");
-            editMenu.DropDownItems.Add("&Undo (Ctrl+Z)", null, (s, e) => _controller.UndoAction());
-            editMenu.DropDownItems.Add("&Redo (Ctrl+Y)", null, (s, e) => _controller.RedoAction());
+
+            var miUndo = new ToolStripMenuItem("&Undo")
+            {
+                ShortcutKeys = Keys.Control | Keys.Z,
+                ShowShortcutKeys = true
+            };
+            miUndo.Click += (s, e) => _controller.UndoAction();
+            editMenu.DropDownItems.Add(miUndo);
+
+            var miRedo = new ToolStripMenuItem("&Redo")
+            {
+                ShortcutKeys = Keys.Control | Keys.Y,
+                ShowShortcutKeys = true
+            };
+            miRedo.Click += (s, e) => _controller.RedoAction();
+            editMenu.DropDownItems.Add(miRedo);
             editMenu.DropDownItems.Add("-");
-            editMenu.DropDownItems.Add("Cu&t (Ctrl+X)", null, (s, e) => _controller.CutAction());
-            editMenu.DropDownItems.Add("&Copy (Ctrl+C)", null, (s, e) => _controller.CopyAction());
-            editMenu.DropDownItems.Add("&Paste (Ctrl+V)", null, (s, e) => _controller.PasteAction());
+            editMenu.DropDownItems.Add(new ToolStripMenuItem("Cu&t") { ShortcutKeys = Keys.Control | Keys.X, ShowShortcutKeys = true, Tag = (Action)(() => _controller.CutAction()) });
+            editMenu.DropDownItems.Add(new ToolStripMenuItem("&Copy") { ShortcutKeys = Keys.Control | Keys.C, ShowShortcutKeys = true, Tag = (Action)(() => _controller.CopyAction()) });
+            editMenu.DropDownItems.Add(new ToolStripMenuItem("&Paste") { ShortcutKeys = Keys.Control | Keys.V, ShowShortcutKeys = true, Tag = (Action)(() => _controller.PasteAction()) });
             editMenu.DropDownItems.Add("-");
-            editMenu.DropDownItems.Add("&Select All (Ctrl+A)", null, (s, e) => _controller.SelectAllAction());
+            var miSelectAll = new ToolStripMenuItem("&Select All")
+            {
+                ShortcutKeys = Keys.Control | Keys.A,
+                ShowShortcutKeys = true
+            };
+            miSelectAll.Click += (s, e) => _controller.SelectAllAction();
+            editMenu.DropDownItems.Add(miSelectAll);
+
+            // Asignar clicks para los items con Tag Action
+            foreach (ToolStripItem item in editMenu.DropDownItems)
+            {
+                if (item is ToolStripMenuItem tsmi && tsmi.Tag is Action act)
+                {
+                    tsmi.Click += (s, e) => act();
+                }
+            }
 
             menu.Items.Add(fileMenu);
             menu.Items.Add(editMenu);

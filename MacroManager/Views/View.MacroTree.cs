@@ -85,14 +85,7 @@ namespace MacroManager
             });
             contextMenu.Items.Add(duplicateItem);
 
-            ToolStripMenuItem exportItem = new ToolStripMenuItem("📤 Export", null, (s, e) =>
-            {
-                if (_macroTreeView.SelectedNode?.Tag is MacroConfig)
-                {
-                    _controller.ExportMacro();
-                }
-            });
-            contextMenu.Items.Add(exportItem);
+            // Export removed
 
             contextMenu.Items.Add(new ToolStripSeparator());
 

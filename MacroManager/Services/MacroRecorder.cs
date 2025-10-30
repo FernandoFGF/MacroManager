@@ -29,6 +29,9 @@ namespace MacroManager.Services
         private bool _isRecording;
         private List<MacroAction> _recordedActions;
         private Stopwatch _recordingTimer;
+        // UI shortcut suppression window to avoid recording Ctrl+R, etc.
+        private DateTime _suppressKeysUntilUtc = DateTime.MinValue;
+        private HashSet<int> _suppressedVkCodes = new HashSet<int> { 0x11, 0xA2, 0xA3, 0x52 }; // VK_CONTROL, VK_LCONTROL, VK_RCONTROL, 'R'
 
         // Event raised when a new action is recorded
         public event EventHandler<MacroAction> ActionRecorded;
@@ -66,6 +69,9 @@ namespace MacroManager.Services
             _recordingTimer.Restart();
             _isRecording = true;
 
+            // Evitar registrar las teclas del atajo de inicio (Ctrl+R) durante unos milisegundos
+            _suppressKeysUntilUtc = DateTime.UtcNow.AddMilliseconds(400);
+
             // Install global hooks
             _keyboardHookID = SetHook(_keyboardProc, WH_KEYBOARD_LL);
             _mouseHookID = SetHook(_mouseProc, WH_MOUSE_LL);
@@ -82,6 +88,9 @@ namespace MacroManager.Services
             _isRecording = false;
             _recordingTimer.Stop();
 
+            // Evitar registrar las teclas del atajo de parada (Ctrl+R) durante unos milisegundos
+            _suppressKeysUntilUtc = DateTime.UtcNow.AddMilliseconds(400);
+
             // Uninstall hooks
             UnhookWindowsHookEx(_keyboardHookID);
             UnhookWindowsHookEx(_mouseHookID);
@@ -97,6 +106,12 @@ namespace MacroManager.Services
             if (nCode >= 0 && _isRecording)
             {
                 int vkCode = Marshal.ReadInt32(lParam);
+
+                // Ventana corta para ignorar específicamente las teclas del atajo (Ctrl + R)
+                if (DateTime.UtcNow <= _suppressKeysUntilUtc && _suppressedVkCodes.Contains(vkCode))
+                {
+                    return CallNextHookEx(_keyboardHookID, nCode, wParam, lParam);
+                }
                 
                 MacroAction action = new MacroAction
                 {
@@ -129,6 +144,22 @@ namespace MacroManager.Services
             if (nCode >= 0 && _isRecording)
             {
                 MSLLHOOKSTRUCT hookStruct = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
+                // Ignorar clics realizados dentro de la propia aplicación (ventana en primer plano del mismo proceso)
+                try
+                {
+                    IntPtr fg = GetForegroundWindow();
+                    if (fg != IntPtr.Zero)
+                    {
+                        uint pid;
+                        GetWindowThreadProcessId(fg, out pid);
+                        if (pid == (uint)Process.GetCurrentProcess().Id)
+                        {
+                            // No registrar eventos de ratón de nuestra propia UI
+                            return CallNextHookEx(_mouseHookID, nCode, wParam, lParam);
+                        }
+                    }
+                }
+                catch { /* fallback: si algo falla, seguimos grabando */ }
                 
                 MacroAction action = new MacroAction
                 {
@@ -216,6 +247,12 @@ namespace MacroManager.Services
 
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr GetModuleHandle(string lpModuleName);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
         /// <summary>
         /// Releases resources when object is destroyed

@@ -17,7 +17,7 @@ namespace MacroManager
                 BackColor = _model.CardBackColor,
                 ForeColor = _model.PanelForeColor,
                 BorderStyle = BorderStyle.None,
-                Font = new Font("Courier New", 10),
+                Font = _model.CreateFont(10),
                 Indent = 20,
                 ShowLines = false,
                 ShowPlusMinus = false,
@@ -62,7 +62,7 @@ namespace MacroManager
             {
                 BackColor = _model.CardBackColor,
                 ForeColor = _model.PanelForeColor,
-                Font = new Font("Segoe UI", 9)
+                Font = _model.CreateFont(9)
             };
 
             ToolStripMenuItem renameItem = new ToolStripMenuItem("✏️ Rename", null, (s, e) =>

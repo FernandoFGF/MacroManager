@@ -30,6 +30,9 @@ namespace MacroManager.Services
         private Color _cardBackColor;
         private Color _borderColor;
 
+        // Font configuration
+        private string _fontFamilyName = "Monofonto";
+
         /// <summary>
         /// Constructor
         /// </summary>
@@ -58,6 +61,17 @@ namespace MacroManager.Services
         public Color AccentColor => _accentColor;
         public Color CardBackColor => _cardBackColor;
         public Color BorderColor => _borderColor;
+
+        // Font Properties
+        public string FontFamilyName => _fontFamilyName;
+        
+        /// <summary>
+        /// Creates a font with the specified size and style
+        /// </summary>
+        public Font CreateFont(float size, FontStyle style = FontStyle.Regular)
+        {
+            return new Font(_fontFamilyName, size, style);
+        }
 
         #endregion
 

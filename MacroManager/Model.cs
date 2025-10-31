@@ -85,6 +85,17 @@ namespace MacroManager
         public Color CardBackColor => _uiConfig.CardBackColor;
         public Color BorderColor => _uiConfig.BorderColor;
 
+        // Font Properties - delegated to service
+        public string FontFamilyName => _uiConfig.FontFamilyName;
+        
+        /// <summary>
+        /// Creates a font with the specified size and style
+        /// </summary>
+        public Font CreateFont(float size, FontStyle style = FontStyle.Regular)
+        {
+            return _uiConfig.CreateFont(size, style);
+        }
+
         #endregion
 
         #region Initialization

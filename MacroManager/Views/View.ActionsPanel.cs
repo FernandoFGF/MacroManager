@@ -137,7 +137,7 @@ namespace MacroManager
                 BackColor = _model.CardBackColor,
                 ForeColor = _model.PanelForeColor,
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 10, FontStyle.Regular),
+                Font = _model.CreateFont(10, FontStyle.Regular),
                 TextAlign = ContentAlignment.MiddleLeft,
                 Tag = index,
                 Cursor = Cursors.Hand

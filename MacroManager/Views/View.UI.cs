@@ -51,7 +51,7 @@ namespace MacroManager
                 Text = "⚠",
                 ForeColor = Color.Gold,
                 BackColor = Color.Transparent,
-                Font = new Font("Segoe UI Symbol", 16, FontStyle.Bold),
+                Font = _model.CreateFont(16, FontStyle.Bold),
                 Visible = false
             };
             mainContentPanel.Controls.Add(_unsavedCenterIcon);
@@ -64,8 +64,9 @@ namespace MacroManager
                 Name = "mainTabControl",
                 BackColor = _model.PanelBackColor,
                 ForeColor = _model.PanelForeColor,
-                Font = new Font("Segoe UI", 10, FontStyle.Regular)
+                Font = _model.CreateFont(10, FontStyle.Regular)
             };
+            SetupCustomTabControl(tabControl);
             tabControl.Parent = mainContentPanel;
 
             CreateMainMacrosTab(tabControl);
@@ -77,7 +78,7 @@ namespace MacroManager
 
         private void CreateMainMacrosTab(TabControl tabControl)
         {
-            TabPage mainTab = new TabPage("Macros")
+            TabPage mainTab = new TabPage("MACROS")
             {
                 BackColor = _model.PanelBackColor,
                 Padding = new Padding(5)
@@ -132,7 +133,7 @@ namespace MacroManager
 
         private void CreateShortcutsTab(TabControl tabControl)
         {
-            TabPage shortcutsTab = new TabPage("Shortcuts")
+            TabPage shortcutsTab = new TabPage("SHORTCUTS")
             {
                 BackColor = _model.PanelBackColor,
                 Padding = new Padding(20)
@@ -142,7 +143,7 @@ namespace MacroManager
             {
                 Text = "🚀 Shortcuts\n\nThis tab will be available soon.\nHere you can configure custom keyboard shortcuts.",
                 Dock = DockStyle.Fill,
-                Font = new Font("Segoe UI", 12, FontStyle.Regular),
+                Font = _model.CreateFont(12, FontStyle.Regular),
                 ForeColor = _model.PanelForeColor,
                 BackColor = _model.PanelBackColor,
                 TextAlign = ContentAlignment.MiddleCenter
@@ -154,7 +155,7 @@ namespace MacroManager
 
         private void CreateMouseTab(TabControl tabControl)
         {
-            TabPage mouseTab = new TabPage("Mouse")
+            TabPage mouseTab = new TabPage("MOUSE")
             {
                 BackColor = _model.PanelBackColor,
                 Padding = new Padding(20)
@@ -164,7 +165,7 @@ namespace MacroManager
             {
                 Text = "🖱️ Mouse\n\nThis tab will be available soon.\nHere you can configure specific mouse actions.",
                 Dock = DockStyle.Fill,
-                Font = new Font("Segoe UI", 12, FontStyle.Regular),
+                Font = _model.CreateFont(12, FontStyle.Regular),
                 ForeColor = _model.PanelForeColor,
                 BackColor = _model.PanelBackColor,
                 TextAlign = ContentAlignment.MiddleCenter
@@ -276,7 +277,7 @@ namespace MacroManager
                 Size = new Size(45, 35),
                 BackColor = _model.CardBackColor,
                 ForeColor = _model.PanelForeColor,
-                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                Font = _model.CreateFont(12, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand,
 				Margin = new Padding(0, 10, 15, 0),
@@ -291,7 +292,7 @@ namespace MacroManager
             {
                 Text = "🔄 Loop",
                 AutoSize = true,
-                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Font = _model.CreateFont(9, FontStyle.Bold),
                 ForeColor = _model.PanelForeColor,
                 BackColor = _model.PanelBackColor,
                 TextAlign = ContentAlignment.MiddleCenter,
@@ -304,7 +305,7 @@ namespace MacroManager
                 Minimum = 0,
                 Maximum = 999,
                 Value = 0,
-                Font = new Font("Segoe UI", 9),
+                Font = _model.CreateFont(9),
                 BackColor = _model.CardBackColor,
                 ForeColor = _model.PanelForeColor,
                 BorderStyle = BorderStyle.FixedSingle,
@@ -342,7 +343,7 @@ namespace MacroManager
             {
                 Text = "🎯 Target",
                 AutoSize = true,
-                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Font = _model.CreateFont(9, FontStyle.Bold),
                 ForeColor = _model.PanelForeColor,
                 BackColor = _model.PanelBackColor,
                 TextAlign = ContentAlignment.MiddleCenter
@@ -393,7 +394,7 @@ namespace MacroManager
                 Size = new Size(90, 20),
                 ForeColor = _model.PanelForeColor,
                 BackColor = _model.PanelBackColor,
-                Font = new Font("Segoe UI", 9, FontStyle.Bold)
+                Font = _model.CreateFont(9, FontStyle.Bold)
             };
             TextBox txtHotkey = new TextBox
             {
@@ -711,7 +712,7 @@ namespace MacroManager
                 return;
             }
             _btnPlay.Text = "▶️";
-            _btnPlay.BackColor = Color.FromArgb(33, 150, 243);
+            _btnPlay.BackColor = _model.AccentColor;
         }
 
         private void OnPlaybackPaused(object sender, EventArgs e)
@@ -753,7 +754,7 @@ namespace MacroManager
                 else
                 {
                     _btnPlay.Text = "▶️";
-                    _btnPlay.BackColor = Color.FromArgb(33, 150, 243);
+                    _btnPlay.BackColor = _model.AccentColor;
                 }
             }
         }
@@ -802,6 +803,98 @@ namespace MacroManager
                 return;
             }
             RefreshActionsDisplay();
+        }
+
+        /// <summary>
+        /// Configura un TabControl con dibujo personalizado para pestañas verdes retro
+        /// </summary>
+        private void SetupCustomTabControl(TabControl tabControl)
+        {
+            tabControl.DrawMode = TabDrawMode.OwnerDrawFixed;
+            tabControl.BackColor = _model.PanelBackColor;
+
+            tabControl.DrawItem += (s, e) =>
+            {
+                Graphics g = e.Graphics;
+                TabPage tabPage = tabControl.TabPages[e.Index];
+                Rectangle tabBounds = tabControl.GetTabRect(e.Index);
+
+                // Color de fondo de la pestaña
+                Color backColor = (e.State == DrawItemState.Selected)
+                    ? _model.CardBackColor  // Verde oscuro cuando está seleccionada (RGB 18, 48, 18)
+                    : _model.PanelBackColor;  // Verde más oscuro cuando no está seleccionada (RGB 15, 40, 15)
+
+                using (SolidBrush brush = new SolidBrush(backColor))
+                {
+                    g.FillRectangle(brush, tabBounds);
+                }
+
+                // Borde verde del tema
+                using (Pen pen = new Pen(_model.BorderColor, 1))
+                {
+                    g.DrawRectangle(pen, tabBounds.X, tabBounds.Y, tabBounds.Width - 1, tabBounds.Height - 1);
+                }
+
+                // Texto
+                Color textColor = (e.State == DrawItemState.Selected)
+                    ? _model.PanelForeColor  // Verde brillante si está seleccionada (RGB 0, 255, 0)
+                    : Color.FromArgb(0, 180, 0);  // Verde más oscuro si no está seleccionada
+
+                using (SolidBrush textBrush = new SolidBrush(textColor))
+                {
+                    StringFormat sf = new StringFormat
+                    {
+                        Alignment = StringAlignment.Center,
+                        LineAlignment = StringAlignment.Center
+                    };
+
+                    g.DrawString(
+                        tabPage.Text,
+                        tabControl.Font,
+                        textBrush,
+                        tabBounds,
+                        sf
+                    );
+                }
+            };
+
+            // Dibujar el fondo del área de tabs (para cubrir el blanco)
+            tabControl.Paint += (s, e) =>
+            {
+                TabControl tc = s as TabControl;
+                if (tc.TabPages.Count == 0) return;
+
+                int tabHeight = 0;
+                try
+                {
+                    tabHeight = tc.GetTabRect(0).Height;
+                }
+                catch
+                {
+                    tabHeight = 23;
+                }
+
+                // Dibujar fondo del área de tabs
+                Rectangle tabStripArea = new Rectangle(0, 0, tc.Width, tabHeight + 2);
+                using (SolidBrush brush = new SolidBrush(_model.PanelBackColor))
+                {
+                    e.Graphics.FillRectangle(brush, tabStripArea);
+                }
+
+                // Dibujar línea separadora en la parte inferior del área de tabs
+                using (Pen pen = new Pen(_model.BorderColor, 1))
+                {
+                    int lineY = tabHeight + 1;
+                    e.Graphics.DrawLine(pen, 0, lineY, tc.Width, lineY);
+                }
+            };
+
+            // Estilizar las páginas de las pestañas
+            foreach (TabPage page in tabControl.TabPages)
+            {
+                page.BackColor = _model.PanelBackColor;
+                page.ForeColor = _model.PanelForeColor;
+            }
         }
     }
 }

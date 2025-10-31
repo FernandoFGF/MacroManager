@@ -26,7 +26,7 @@ namespace MacroManager
                 Text = "⌨️ Key:",
                 Dock = DockStyle.Top,
                 Height = 25,
-                Font = new Font("Courier New", 9, FontStyle.Bold),
+                Font = _model.CreateFont(9, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft,
                 ForeColor = _model.PanelForeColor,
                 BackColor = _model.PanelBackColor
@@ -36,7 +36,7 @@ namespace MacroManager
             {
                 Dock = DockStyle.Top,
                 Height = 35,
-                Font = new Font("Courier New", 10),
+                Font = _model.CreateFont(10),
                 Name = "txtKey",
                 BackColor = _model.CardBackColor,
                 ForeColor = _model.PanelForeColor,
@@ -66,7 +66,7 @@ namespace MacroManager
                 Text = "⏱️ Delay (ms):",
                 Dock = DockStyle.Top,
                 Height = 25,
-                Font = new Font("Courier New", 9, FontStyle.Bold),
+                Font = _model.CreateFont(9, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft,
                 ForeColor = _model.PanelForeColor,
                 BackColor = _model.PanelBackColor
@@ -76,7 +76,7 @@ namespace MacroManager
             {
                 Dock = DockStyle.Top,
                 Height = 35,
-                Font = new Font("Courier New", 10),
+                Font = _model.CreateFont(10),
                 Name = "txtDelay",
                 BackColor = _model.CardBackColor,
                 ForeColor = _model.PanelForeColor,
@@ -91,7 +91,7 @@ namespace MacroManager
                 Text = "🎯 Action Type:",
                 Dock = DockStyle.Top,
                 Height = 25,
-                Font = new Font("Courier New", 9, FontStyle.Bold),
+                Font = _model.CreateFont(9, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft,
                 ForeColor = _model.PanelForeColor,
                 BackColor = _model.PanelBackColor
@@ -101,7 +101,7 @@ namespace MacroManager
             {
                 Dock = DockStyle.Top,
                 Height = 35,
-                Font = new Font("Courier New", 9),
+                Font = _model.CreateFont(9),
                 Name = "cmbActionType",
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 BackColor = _model.CardBackColor,
@@ -144,7 +144,7 @@ namespace MacroManager
                 AutoSize = false,
                 Location = new Point(110, 5),
                 Size = new Size(220, 30),
-                Font = new Font("Courier New", 9, FontStyle.Bold),
+                Font = _model.CreateFont(9, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft,
                 ForeColor = _model.PanelForeColor,
                 BackColor = _model.PanelBackColor
@@ -179,7 +179,7 @@ namespace MacroManager
                 Size = new Size(70, 35),
                 BackColor = _model.CardBackColor,
                 ForeColor = _model.PanelForeColor,
-                Font = new Font("Courier New", 10, FontStyle.Bold),
+                Font = _model.CreateFont(10, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };
@@ -196,7 +196,7 @@ namespace MacroManager
                 Size = new Size(70, 35),
                 BackColor = _model.CardBackColor,
                 ForeColor = _model.PanelForeColor,
-                Font = new Font("Courier New", 10, FontStyle.Bold),
+                Font = _model.CreateFont(10, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };
@@ -224,7 +224,7 @@ namespace MacroManager
                 Size = new Size(70, 35),
                 BackColor = _model.CardBackColor,
                 ForeColor = _model.PanelForeColor,
-                Font = new Font("Courier New", 10, FontStyle.Bold),
+                Font = _model.CreateFont(10, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };
@@ -261,7 +261,7 @@ namespace MacroManager
                 Size = new Size(70, 35),
                 BackColor = _model.CardBackColor,
                 ForeColor = _model.PanelForeColor,
-                Font = new Font("Courier New", 10, FontStyle.Bold),
+                Font = _model.CreateFont(10, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };
@@ -278,7 +278,7 @@ namespace MacroManager
                 Size = new Size(70, 35),
                 BackColor = _model.CardBackColor,
                 ForeColor = _model.PanelForeColor,
-                Font = new Font("Courier New", 10, FontStyle.Bold),
+                Font = _model.CreateFont(10, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand,
                 Enabled = false
@@ -296,7 +296,7 @@ namespace MacroManager
                 Size = new Size(70, 35),
                 BackColor = _model.CardBackColor,
                 ForeColor = _model.PanelForeColor,
-                Font = new Font("Courier New", 10, FontStyle.Bold),
+                Font = _model.CreateFont(10, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand
             };

@@ -39,13 +39,19 @@ namespace MacroManager.Services
         /// Si devuelve false durante la reproducción, el reproductor puede pausar.
         /// </summary>
         Func<bool> IsTargetActiveFunc { get; set; }
+        
+        /// <summary>
+        /// Función para cargar un macro por ID (para acciones tipo Macro)
+        /// </summary>
+        Func<Guid, MacroConfig> LoadMacroFunc { get; set; }
 
         /// <summary>
         /// Reproduce una macro de forma asíncrona
         /// </summary>
         /// <param name="macro">La configuración de macro a reproducir</param>
         /// <param name="repeatCount">Número de repeticiones (1 = una vez, 0 = infinito)</param>
-        Task PlayAsync(MacroConfig macro, int repeatCount = 1);
+        /// <param name="releaseModifiersFirst">Si es true, libera todas las teclas modificadoras antes de reproducir (útil para shortcuts)</param>
+        Task PlayAsync(MacroConfig macro, int repeatCount = 1, bool releaseModifiersFirst = false);
 
         /// <summary>
         /// Detiene la reproducción actual

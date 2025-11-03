@@ -10,6 +10,10 @@ namespace MacroManager
         private Label _lblCoords;
         private Button _btnZone;
         private Panel _zonePanel;
+        private Label _lblKey;
+        private Label _lblZone;
+        private Label _lblDelay;
+        private Label _lblActionType;
         private void CreateRuleEditorWithButtons(Control parent)
         {
             Panel ruleEditorPanel = new Panel
@@ -21,6 +25,7 @@ namespace MacroManager
 
             // Removed instructional title to simplify the editor
 
+            // Key - Label (condicional, invisible por defecto)
             Label lblKey = new Label
             {
                 Text = "⌨️ Key:",
@@ -29,9 +34,12 @@ namespace MacroManager
                 Font = _model.CreateFont(9, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft,
                 ForeColor = _model.PanelForeColor,
-                BackColor = _model.PanelBackColor
+                BackColor = _model.PanelBackColor,
+                Visible = false, // INVISIBLE por defecto
+                Margin = new Padding(0, 10, 0, 0) // Espacio arriba
             };
 
+            // Key - TextBox (condicional, invisible por defecto)
             TextBox txtKey = new TextBox
             {
                 Dock = DockStyle.Top,
@@ -40,7 +48,8 @@ namespace MacroManager
                 Name = "txtKey",
                 BackColor = _model.CardBackColor,
                 ForeColor = _model.PanelForeColor,
-                BorderStyle = BorderStyle.FixedSingle
+                BorderStyle = BorderStyle.FixedSingle,
+                Visible = false // INVISIBLE por defecto
             };
             txtKey.TextChanged += (s, e) => SaveActionChanges();
             txtKey.KeyDown += (s, e) => {
@@ -57,9 +66,6 @@ namespace MacroManager
                 }
                 SaveActionChanges();
             };
-            // Add input first, then label, so label appears above with DockStyle.Top
-            ruleEditorPanel.Controls.Add(txtKey);
-            ruleEditorPanel.Controls.Add(lblKey);
 
             Label lblDelay = new Label
             {
@@ -83,18 +89,17 @@ namespace MacroManager
                 BorderStyle = BorderStyle.FixedSingle
             };
             txtDelay.TextChanged += (s, e) => SaveActionChanges();
-            ruleEditorPanel.Controls.Add(txtDelay);
-            ruleEditorPanel.Controls.Add(lblDelay);
 
             Label lblActionType = new Label
             {
-                Text = "🎯 Action Type:",
+                Text = "🎯 Action:",
                 Dock = DockStyle.Top,
                 Height = 25,
                 Font = _model.CreateFont(9, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft,
                 ForeColor = _model.PanelForeColor,
-                BackColor = _model.PanelBackColor
+                BackColor = _model.PanelBackColor,
+                Margin = new Padding(0, 10, 0, 0) // Espacio arriba
             };
 
             ComboBox cmbActionType = new ComboBox
@@ -110,25 +115,47 @@ namespace MacroManager
             };
             cmbActionType.Items.AddRange(new[] { "KeyPress", "KeyDown", "KeyUp", "MouseLeftDown", "MouseLeftUp", "MouseLeftClick", "MouseRightDown", "MouseRightUp", "MouseRightClick", "MouseMove", "Delay" });
             cmbActionType.SelectedIndex = 0;
-            cmbActionType.SelectedIndexChanged += (s, e) => SaveActionChanges();
-            ruleEditorPanel.Controls.Add(cmbActionType);
-            ruleEditorPanel.Controls.Add(lblActionType);
 
-            // Panel inferior para Zone (solo visible en acciones de ratón)
+            // Zone - Label (condicional, invisible por defecto)
+            Label lblZone = new Label
+            {
+                Text = "📍 Zone:",
+                Dock = DockStyle.Top,
+                Height = 25,
+                Font = _model.CreateFont(9, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft,
+                ForeColor = _model.PanelForeColor,
+                BackColor = _model.PanelBackColor,
+                Visible = false, // INVISIBLE por defecto
+                Margin = new Padding(0, 10, 0, 0) // Espacio arriba
+            };
+
+            // Zone - Panel con botón y coordenadas (condicional, invisible por defecto)
             Panel zonePanel = new Panel
             {
-                Dock = DockStyle.Bottom,
-                Height = 40,
+                Dock = DockStyle.Top,
+                Height = 60,
                 BackColor = _model.PanelBackColor,
-                Visible = false
+                Visible = false // INVISIBLE por defecto
+            };
+
+            Label lblCoords = new Label
+            {
+                Text = "📍 Coords: -",
+                Dock = DockStyle.Top,
+                Height = 30,
+                Font = _model.CreateFont(9, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft,
+                ForeColor = _model.PanelForeColor,
+                BackColor = _model.PanelBackColor
             };
 
             // Botón Zone para elegir punto en pantalla
             Button btnZone = new Button
             {
                 Text = "📍 Zone",
-                Location = new Point(10, 5),
-                Size = new Size(90, 30),
+                Dock = DockStyle.Top,
+                Height = 30,
                 BackColor = _model.CardBackColor,
                 ForeColor = _model.PanelForeColor,
                 FlatStyle = FlatStyle.Flat,
@@ -137,26 +164,91 @@ namespace MacroManager
             btnZone.FlatAppearance.BorderSize = 0;
             ApplyRetroButtonStyle(btnZone, _model.AccentColor, _model.BorderColor);
 
-            // Coordenadas mostradas para acciones de ratón
-            Label lblCoords = new Label
-            {
-                Text = "📍 Coords: -",
-                AutoSize = false,
-                Location = new Point(110, 5),
-                Size = new Size(220, 30),
-                Font = _model.CreateFont(9, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleLeft,
-                ForeColor = _model.PanelForeColor,
-                BackColor = _model.PanelBackColor
-            };
-
             btnZone.Click += (s, e) => PickZoneForCurrentAction(lblCoords);
             if (_toolTip != null) _toolTip.SetToolTip(btnZone, "Elegir punto en pantalla");
 
-            zonePanel.Controls.Add(btnZone);
             zonePanel.Controls.Add(lblCoords);
-            // Agregar tras otros paneles de fondo para que quede al fondo de todo
-            ruleEditorPanel.Controls.Add(zonePanel);
+            zonePanel.Controls.Add(btnZone);
+            
+            // Agregar controles desde el ÚLTIMO visible hacia el PRIMERO
+            // Con DockStyle.Top: último agregado = más arriba visualmente
+            // Orden deseado: Delay, Action, [Key/Zone condicional]
+            // Agregar en orden inverso:
+            
+            // PRIMERO: Condicionales (abajo, invisibles por defecto)
+            ruleEditorPanel.Controls.Add(txtKey);          // Key textbox
+            ruleEditorPanel.Controls.Add(lblKey);         // Key label (aparece arriba del textbox)
+            
+            ruleEditorPanel.Controls.Add(zonePanel);       // Zone panel
+            ruleEditorPanel.Controls.Add(lblZone);        // Zone label (aparece arriba del panel)
+            
+            // SEGUNDO: Action
+            ruleEditorPanel.Controls.Add(cmbActionType);   // Action selector
+            ruleEditorPanel.Controls.Add(lblActionType);  // Action label (aparece arriba del selector)
+            
+            // TERCERO: Delay (más arriba, siempre visible)
+            ruleEditorPanel.Controls.Add(txtDelay);        // Delay textbox
+            ruleEditorPanel.Controls.Add(lblDelay);       // Delay label (aparece más arriba)
+            
+            // Función para actualizar visibilidad según el tipo de acción
+            void UpdateEditorVisibility()
+            {
+                if (cmbActionType.SelectedItem == null) return;
+                
+                string actionTypeStr = cmbActionType.SelectedItem.ToString();
+                bool isKeyboard = actionTypeStr == "KeyPress" || actionTypeStr == "KeyDown" || actionTypeStr == "KeyUp";
+                bool isMouse = actionTypeStr.StartsWith("Mouse");
+
+                // Suspender layout para evitar reordenamientos automáticos
+                ruleEditorPanel.SuspendLayout();
+
+                // Key - solo visible para teclado
+                lblKey.Visible = isKeyboard;
+                txtKey.Visible = isKeyboard;
+
+                // Zone - solo visible para ratón
+                lblZone.Visible = isMouse;
+                zonePanel.Visible = isMouse;
+                btnZone.Enabled = isMouse;
+
+                // Reordenar controles para asegurar el orden correcto cuando son visibles
+                // Orden deseado de arriba hacia abajo: Delay, Action, [Key/Zone condicional]
+                // Con DockStyle.Top, BringToFront() mueve el control ARRIBA visualmente
+                // Entonces traemos al frente en orden INVERSO: primero los fijos, luego los condicionales
+                
+                // Primero asegurar orden de controles siempre visibles (más arriba)
+                lblDelay.BringToFront();
+                txtDelay.BringToFront();
+                lblActionType.BringToFront();
+                cmbActionType.BringToFront();
+                
+                // Luego los condicionales (si son visibles) van DESPUÉS de Action
+                // Para cada par: primero el label, luego el control (label arriba del control)
+                if (isMouse)
+                {
+                    lblZone.BringToFront();
+                    zonePanel.BringToFront();
+                }
+                if (isKeyboard)
+                {
+                    lblKey.BringToFront();
+                    txtKey.BringToFront();
+                }
+
+                ruleEditorPanel.ResumeLayout(true);
+            }
+
+            // Guardar referencia a la función de visibilidad para poder llamarla desde fuera
+            Action updateVisibility = UpdateEditorVisibility;
+
+            // Evento cuando cambie el tipo de acción
+            cmbActionType.SelectedIndexChanged += (s, e) => {
+                if (!_suppressEditorEvents)
+                {
+                    UpdateEditorVisibility();
+                    SaveActionChanges();
+                }
+            };
 
             Panel buttonPanel = new Panel
             {
@@ -315,6 +407,10 @@ namespace MacroManager
             _lblCoords = lblCoords;
             _btnZone = btnZone;
             _zonePanel = zonePanel;
+            _lblKey = lblKey;
+            _lblZone = lblZone;
+            _lblDelay = lblDelay;
+            _lblActionType = lblActionType;
 
             parent.Controls.Add(ruleEditorPanel);
         }
@@ -336,10 +432,51 @@ namespace MacroManager
                 _txtKey.Text = _model.GetKeyDisplay(action);
                 _txtDelay.Text = action.DelayMs.ToString();
                 _cmbActionType.SelectedItem = action.Type.ToString();
+                
+                // Actualizar coordenadas
                 bool isMouse = action.Type.ToString().StartsWith("Mouse");
+                _lblCoords.Text = isMouse ? $"📍 Coords: {action.X}, {action.Y}" : "📍 Coords: -";
+                
+                // Actualizar visibilidad según el tipo de acción
+                // Nota: UpdateEditorVisibility se llama automáticamente por el evento SelectedIndexChanged
+                // pero también lo llamamos explícitamente aquí para asegurar que se actualice correctamente
+                string actionTypeStr = action.Type.ToString();
+                bool isKeyboard = actionTypeStr == "KeyPress" || actionTypeStr == "KeyDown" || actionTypeStr == "KeyUp";
+                
+                // Actualizar visibilidad manualmente
+                _lblKey.Visible = isKeyboard;
+                _txtKey.Visible = isKeyboard;
+                
+                _lblZone.Visible = isMouse;
                 _zonePanel.Visible = isMouse;
                 _btnZone.Enabled = isMouse;
-                _lblCoords.Text = isMouse ? $"📍 Coords: {action.X}, {action.Y}" : "";
+                
+                // Reordenar controles para asegurar el orden correcto
+                Panel ruleEditorPanel = _zonePanel.Parent as Panel;
+                if (ruleEditorPanel != null)
+                {
+                    ruleEditorPanel.SuspendLayout();
+                    
+                    // Primero asegurar orden de controles siempre visibles (más arriba)
+                    _lblDelay?.BringToFront();
+                    _txtDelay?.BringToFront();
+                    _lblActionType?.BringToFront();
+                    _cmbActionType?.BringToFront();
+                    
+                    // Luego los condicionales (si son visibles) van DESPUÉS de Action
+                    if (isMouse)
+                    {
+                        _lblZone?.BringToFront();
+                        _zonePanel?.BringToFront();
+                    }
+                    if (isKeyboard)
+                    {
+                        _lblKey?.BringToFront();
+                        _txtKey?.BringToFront();
+                    }
+                    
+                    ruleEditorPanel.ResumeLayout(true);
+                }
             }
             finally
             {
@@ -380,10 +517,9 @@ namespace MacroManager
                 _controller.UpdateAction(_selectedActionIndex, _txtKey.Text, delay, actionType);
                 var action = _model.CurrentMacro.Actions[_selectedActionIndex];
                 bool isMouse = actionType.ToString().StartsWith("Mouse");
-                _zonePanel.Visible = isMouse;
-                _btnZone.Enabled = isMouse;
-                _lblCoords.Text = isMouse ? $"📍 Coords: {action.X}, {action.Y}" : "";
+                _lblCoords.Text = isMouse ? $"📍 Coords: {action.X}, {action.Y}" : "📍 Coords: -";
                 SetDirty(true);
+                // La visibilidad se actualiza automáticamente por el evento SelectedIndexChanged
             }
         }
 

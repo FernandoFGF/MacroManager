@@ -14,6 +14,7 @@ namespace MacroManager.Services
     public class SettingsManager : ISettingsManager
     {
         private readonly string _macrosDirectory;
+        private readonly string _shortcutsDirectory;
         private readonly string _settingsFilePath;
 
         /// <summary>
@@ -36,6 +37,7 @@ namespace MacroManager.Services
 
             // Create folders if they don't exist
             _macrosDirectory = Path.Combine(appFolder, "Macros");
+            _shortcutsDirectory = Path.Combine(appFolder, "Shortcuts");
             _settingsFilePath = Path.Combine(appFolder, "settings.json");
 
             if (!Directory.Exists(appFolder))
@@ -43,6 +45,9 @@ namespace MacroManager.Services
 
             if (!Directory.Exists(_macrosDirectory))
                 Directory.CreateDirectory(_macrosDirectory);
+
+            if (!Directory.Exists(_shortcutsDirectory))
+                Directory.CreateDirectory(_shortcutsDirectory);
         }
 
         /// <summary>
@@ -418,5 +423,321 @@ namespace MacroManager.Services
         /// Gets the macros directory path
         /// </summary>
         public string GetMacrosDirectory() => _macrosDirectory;
+
+        /// <summary>
+        /// Saves a shortcut to a file
+        /// </summary>
+        /// <param name="shortcut">The shortcut to save</param>
+        /// <returns>True if saved successfully</returns>
+        public bool SaveShortcut(MacroConfig shortcut)
+        {
+            try
+            {
+                if (shortcut == null)
+                    return false;
+
+                shortcut.LastModified = DateTime.Now;
+
+                // Find the existing file for this shortcut (by ID)
+                string existingFilePath = FindShortcutFile(shortcut.Id);
+                
+                // Normalize name (trim) and use as filename (with .json extension)
+                shortcut.Name = (shortcut.Name ?? "").Trim();
+                string newFileName = $"{SanitizeFileName(shortcut.Name)}.json";
+                string newFilePath = Path.Combine(_shortcutsDirectory, newFileName);
+
+                // If the file name has changed, delete the old file
+                if (existingFilePath != null && existingFilePath != newFilePath)
+                {
+                    try
+                    {
+                        File.Delete(existingFilePath);
+                    }
+                    catch
+                    {
+                        // Continue even if deletion fails
+                    }
+                }
+
+                // Check if there's already a file with same name (case-insensitive) but different ID
+                string collisionPath = Directory.GetFiles(_shortcutsDirectory, "*.json")
+                    .FirstOrDefault(f => string.Equals(Path.GetFileName(f), newFileName, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrEmpty(collisionPath))
+                {
+                    // Load the existing file to check if it's the same shortcut
+                    try
+                    {
+                        string existingJson = File.ReadAllText(collisionPath);
+                        var existingShortcut = JsonConvert.DeserializeObject<MacroConfig>(existingJson);
+                        
+                        // If it's a different shortcut, add a number suffix
+                        if (existingShortcut != null && existingShortcut.Id != shortcut.Id)
+                        {
+                            int counter = 1;
+                            string baseName = SanitizeFileName(shortcut.Name);
+                            
+                            do
+                            {
+                                newFileName = $"{baseName}_{counter}.json";
+                                newFilePath = Path.Combine(_shortcutsDirectory, newFileName);
+                                counter++;
+                            } while (File.Exists(newFilePath));
+                        }
+                    }
+                    catch
+                    {
+                        // If we can't read the existing file, add a number suffix
+                        int counter = 1;
+                        string baseName = SanitizeFileName(shortcut.Name);
+                        
+                        do
+                        {
+                            newFileName = $"{baseName}_{counter}.json";
+                            newFilePath = Path.Combine(_shortcutsDirectory, newFileName);
+                            counter++;
+                        } while (File.Exists(newFilePath));
+                    }
+                }
+
+                string json = JsonConvert.SerializeObject(shortcut, _jsonSettings);
+                // Write atomically: write temp then replace
+                string tempPath = Path.Combine(_shortcutsDirectory, $".{Guid.NewGuid():N}.tmp");
+                File.WriteAllText(tempPath, json);
+                if (File.Exists(newFilePath))
+                {
+                    // Backup not needed; replace in place
+                    File.Replace(tempPath, newFilePath, null);
+                }
+                else
+                {
+                    File.Move(tempPath, newFilePath);
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error saving shortcut: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Find the file path for a shortcut by its ID
+        /// </summary>
+        private string FindShortcutFile(Guid shortcutId)
+        {
+            try
+            {
+                string[] files = Directory.GetFiles(_shortcutsDirectory, "*.json");
+                
+                foreach (string file in files)
+                {
+                    try
+                    {
+                        string json = File.ReadAllText(file);
+                        var shortcut = JsonConvert.DeserializeObject<MacroConfig>(json);
+                        
+                        if (shortcut != null && shortcut.Id == shortcutId)
+                        {
+                            return file;
+                        }
+                    }
+                    catch
+                    {
+                        // Skip invalid files
+                        continue;
+                    }
+                }
+            }
+            catch
+            {
+                // Directory access error
+            }
+            
+            return null;
+        }
+
+        /// <summary>
+        /// Loads a shortcut from a file
+        /// </summary>
+        /// <param name="shortcutId">ID of the shortcut to load</param>
+        /// <returns>The loaded shortcut or null if it doesn't exist</returns>
+        public MacroConfig LoadShortcut(Guid shortcutId)
+        {
+            try
+            {
+                // Search for files that contain this shortcut ID
+                string[] files = Directory.GetFiles(_shortcutsDirectory, "*.json");
+                
+                foreach (string file in files)
+                {
+                    try
+                    {
+                        string json = File.ReadAllText(file);
+                        var shortcut = JsonConvert.DeserializeObject<MacroConfig>(json);
+                        
+                        if (shortcut != null && shortcut.Id == shortcutId)
+                        {
+                            return shortcut;
+                        }
+                    }
+                    catch
+                    {
+                        // Skip invalid files
+                        continue;
+                    }
+                }
+                
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading shortcut: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Loads all saved shortcuts
+        /// </summary>
+        /// <returns>List of shortcuts</returns>
+        public List<MacroConfig> LoadAllShortcuts()
+        {
+            var shortcuts = new List<MacroConfig>();
+
+            try
+            {
+                string[] files = Directory.GetFiles(_shortcutsDirectory, "*.json");
+
+                foreach (string file in files)
+                {
+                    try
+                    {
+                        string json = File.ReadAllText(file);
+                        var shortcut = JsonConvert.DeserializeObject<MacroConfig>(json);
+                        
+                        if (shortcut != null)
+                        {
+                            // Set the display name to the actual filename (without extension)
+                            string fileName = Path.GetFileNameWithoutExtension(file);
+                            shortcut.Name = fileName;
+                            shortcuts.Add(shortcut);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error loading {Path.GetFileName(file)}: {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading shortcuts: {ex.Message}");
+            }
+
+            return shortcuts.OrderBy(s => s.Name).ToList();
+        }
+
+        /// <summary>
+        /// Deletes a shortcut
+        /// </summary>
+        /// <param name="shortcutId">ID of the shortcut to delete</param>
+        /// <returns>True if deleted successfully</returns>
+        public bool DeleteShortcut(Guid shortcutId)
+        {
+            try
+            {
+                // Search for files that contain this shortcut ID
+                string[] files = Directory.GetFiles(_shortcutsDirectory, "*.json");
+                
+                foreach (string file in files)
+                {
+                    try
+                    {
+                        string json = File.ReadAllText(file);
+                        var shortcut = JsonConvert.DeserializeObject<MacroConfig>(json);
+                        
+                        if (shortcut != null && shortcut.Id == shortcutId)
+                        {
+                            File.Delete(file);
+                            return true;
+                        }
+                    }
+                    catch
+                    {
+                        // Skip invalid files
+                        continue;
+                    }
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting shortcut: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Exports a shortcut to a specific file
+        /// </summary>
+        /// <param name="shortcut">Shortcut to export</param>
+        /// <param name="filePath">Destination file path</param>
+        /// <returns>True if exported successfully</returns>
+        public bool ExportShortcut(MacroConfig shortcut, string filePath)
+        {
+            try
+            {
+                string json = JsonConvert.SerializeObject(shortcut, _jsonSettings);
+                File.WriteAllText(filePath, json);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error exporting shortcut: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Imports a shortcut from a file
+        /// </summary>
+        /// <param name="filePath">Path of the file to import</param>
+        /// <returns>The imported shortcut or null if it fails</returns>
+        public MacroConfig ImportShortcut(string filePath)
+        {
+            try
+            {
+                if (!File.Exists(filePath))
+                    return null;
+
+                string json = File.ReadAllText(filePath);
+                var shortcut = JsonConvert.DeserializeObject<MacroConfig>(json);
+
+                if (shortcut != null)
+                {
+                    // Generate new ID to avoid conflicts
+                    shortcut.Id = Guid.NewGuid();
+                    shortcut.CreatedDate = DateTime.Now;
+                    shortcut.LastModified = DateTime.Now;
+
+                    SaveShortcut(shortcut);
+                }
+
+                return shortcut;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error importing shortcut: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Gets the shortcuts directory path
+        /// </summary>
+        public string GetShortcutsDirectory() => _shortcutsDirectory;
     }
 }

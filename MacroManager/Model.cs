@@ -26,6 +26,8 @@ namespace MacroManager
         // Data
         private List<MacroConfig> _loadedMacros;
         private MacroConfig _currentMacro;
+        private List<MacroConfig> _loadedShortcuts;
+        private MacroConfig _currentShortcut;
         private IntPtr _targetWindowHandle = IntPtr.Zero;
         private uint _targetProcessId = 0;
         private string _targetWindowTitle = "Desktop (global)";
@@ -36,8 +38,12 @@ namespace MacroManager
         public event EventHandler PlaybackStopped;
         public event EventHandler RecordingStarted;
         public event EventHandler RecordingStopped;
+        public event EventHandler ShortcutRecordingStarted;
+        public event EventHandler ShortcutRecordingStopped;
         public event EventHandler MacrosChanged;
         public event EventHandler CurrentMacroChanged;
+        public event EventHandler ShortcutsChanged;
+        public event EventHandler CurrentShortcutChanged;
         public event EventHandler PlaybackPaused;
         public event EventHandler PlaybackResumed;
         public event EventHandler<bool> ConditionalArmedChanged;
@@ -54,12 +60,15 @@ namespace MacroManager
 
             InitializeServices();
             LoadMacros();
+            LoadShortcuts();
         }
 
         #region Properties
 
         public List<MacroConfig> LoadedMacros => _loadedMacros;
         public MacroConfig CurrentMacro => _currentMacro;
+        public List<MacroConfig> LoadedShortcuts => _loadedShortcuts;
+        public MacroConfig CurrentShortcut => _currentShortcut;
         public bool IsRecording => _recorder?.IsRecording ?? false;
         public bool IsPlaying => _player?.IsPlaying ?? false;
         public bool IsPaused => _player?.IsPaused ?? false;
@@ -108,6 +117,9 @@ namespace MacroManager
             _recorder.ActionRecorded += OnActionRecorded;
             _player.PlaybackStarted += OnPlaybackStarted;
             _player.PlaybackStopped += OnPlaybackStopped;
+            
+            // Configurar función para cargar macros en MacroPlayer (para acciones tipo Macro)
+            _player.LoadMacroFunc = (macroId) => _settingsManager.LoadMacro(macroId);
         }
 
 
@@ -117,6 +129,14 @@ namespace MacroManager
         private void LoadMacros()
         {
             _loadedMacros = _settingsManager.LoadAllMacros();
+        }
+
+        /// <summary>
+        /// Load all shortcuts and display UI
+        /// </summary>
+        private void LoadShortcuts()
+        {
+            _loadedShortcuts = _settingsManager.LoadAllShortcuts();
         }
 
         /// <summary>
@@ -155,6 +175,8 @@ namespace MacroManager
         /// </summary>
         public void StartRecording()
         {
+            // Asegurar que no hay shortcut activo cuando empezamos a grabar un macro
+            _currentShortcut = null;
             _currentMacro = new MacroConfig { Name = $"Recording_{DateTime.Now:yyyyMMdd_HHmmss}" };
             _recorder.StartRecording();
             RecordingStarted?.Invoke(this, EventArgs.Empty);
@@ -277,6 +299,208 @@ namespace MacroManager
 
         #endregion
 
+        #region Shortcut Management
+
+        /// <summary>
+        /// Load a shortcut for editing
+        /// </summary>
+        public void LoadShortcut(MacroConfig shortcut)
+        {
+            _currentShortcut = shortcut;
+            CurrentShortcutChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Create a new shortcut
+        /// </summary>
+        public void CreateNewShortcut()
+        {
+            _currentShortcut = new MacroConfig { Name = $"Shortcut_{DateTime.Now:yyyyMMdd_HHmmss}" };
+            CurrentShortcutChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Start recording a new shortcut
+        /// </summary>
+        public void StartRecordingShortcut()
+        {
+            // Asegurar que no hay macro activo cuando empezamos a grabar un shortcut
+            _currentMacro = null;
+            _currentShortcut = new MacroConfig { Name = $"Recording_{DateTime.Now:yyyyMMdd_HHmmss}" };
+            _recorder.StartRecording();
+            ShortcutRecordingStarted?.Invoke(this, EventArgs.Empty);
+            CurrentShortcutChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Stop recording shortcut
+        /// </summary>
+        public void StopRecordingShortcut()
+        {
+            _recorder.StopRecording();
+            // Las acciones ya fueron agregadas a _currentShortcut en OnActionRecorded
+            // Ahora solo necesitamos actualizar el estado y refrescar la UI
+            if (_currentShortcut != null && _currentShortcut.Actions.Count > 0)
+            {
+                // El shortcut ya tiene las acciones, solo necesitamos notificar
+                CurrentShortcutChanged?.Invoke(this, EventArgs.Empty);
+            }
+            ShortcutRecordingStopped?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Save current shortcut
+        /// </summary>
+        public bool SaveCurrentShortcut()
+        {
+            if (_currentShortcut == null)
+                return false;
+
+            if (!ValidateMacro(_currentShortcut))
+                return false;
+
+            _currentShortcut.LastModified = DateTime.Now;
+            _currentShortcut.LastUsed = DateTime.Now;
+            bool success = _settingsManager.SaveShortcut(_currentShortcut);
+            
+            if (success)
+            {
+                RefreshLoadedShortcuts();
+            }
+            
+            return success;
+        }
+
+        /// <summary>
+        /// Save a specific shortcut
+        /// </summary>
+        public bool SaveShortcut(MacroConfig shortcut)
+        {
+            if (shortcut == null)
+                return false;
+
+            if (!ValidateMacro(shortcut))
+                return false;
+
+            shortcut.LastModified = DateTime.Now;
+            shortcut.LastUsed = DateTime.Now;
+            bool success = _settingsManager.SaveShortcut(shortcut);
+            
+            if (success)
+            {
+                RefreshLoadedShortcuts();
+            }
+            
+            return success;
+        }
+
+        /// <summary>
+        /// Delete current shortcut
+        /// </summary>
+        public bool DeleteCurrentShortcut()
+        {
+            if (_currentShortcut == null)
+                return false;
+
+            bool success = _settingsManager.DeleteShortcut(_currentShortcut.Id);
+            if (success)
+            {
+                _loadedShortcuts.Remove(_currentShortcut);
+                _currentShortcut = null;
+                ShortcutsChanged?.Invoke(this, EventArgs.Empty);
+                CurrentShortcutChanged?.Invoke(this, EventArgs.Empty);
+            }
+            
+            return success;
+        }
+
+        /// <summary>
+        /// Export current shortcut
+        /// </summary>
+        public bool ExportShortcut(string filePath)
+        {
+            if (_currentShortcut == null)
+                return false;
+
+            return _settingsManager.ExportShortcut(_currentShortcut, filePath);
+        }
+
+        /// <summary>
+        /// Import shortcut from file
+        /// </summary>
+        public MacroConfig ImportShortcut(string filePath)
+        {
+            var imported = _settingsManager.ImportShortcut(filePath);
+            if (imported != null)
+            {
+                RefreshLoadedShortcuts();
+            }
+            return imported;
+        }
+
+        /// <summary>
+        /// Rename current shortcut
+        /// </summary>
+        public void RenameCurrentShortcut(string newName)
+        {
+            if (_currentShortcut != null && !string.IsNullOrEmpty(newName))
+            {
+                _currentShortcut.Name = newName;
+                SaveCurrentShortcut();
+            }
+        }
+
+        /// <summary>
+        /// Refresh loaded shortcuts from disk
+        /// </summary>
+        public void RefreshLoadedShortcuts()
+        {
+            _loadedShortcuts = _settingsManager.LoadAllShortcuts();
+            ShortcutsChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Get last used shortcut or first available
+        /// </summary>
+        public MacroConfig GetLastShortcut()
+        {
+            if (_loadedShortcuts.Count == 0)
+                return null;
+
+            return _loadedShortcuts.OrderByDescending(s => s.LastUsed).FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Get shortcut file path
+        /// </summary>
+        public string GetShortcutFilePath(MacroConfig shortcut)
+        {
+            if (shortcut == null)
+                return null;
+
+            string shortcutsDirectory = _settingsManager.GetShortcutsDirectory();
+            string fileName = $"{SanitizeFileName(shortcut.Name)}.json";
+            return Path.Combine(shortcutsDirectory, fileName);
+        }
+
+        /// <summary>
+        /// Notifies that the current shortcut has changed
+        /// </summary>
+        public void NotifyCurrentShortcutChanged()
+        {
+            CurrentShortcutChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Notifies that shortcuts have changed
+        /// </summary>
+        public void NotifyShortcutsChanged()
+        {
+            ShortcutsChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
         #region Action Management
 
         /// <summary>
@@ -365,6 +589,100 @@ namespace MacroManager
             CurrentMacroChanged?.Invoke(this, EventArgs.Empty);
         }
 
+        /// <summary>
+        /// Add a new action to current shortcut
+        /// </summary>
+        public void AddNewShortcutAction()
+        {
+            if (_currentShortcut == null)
+                return;
+
+            var newAction = new MacroAction
+            {
+                Type = ActionType.KeyPress,
+                KeyCode = (int)Keys.A,
+                DelayMs = 0
+            };
+
+            if (ValidateAction(newAction))
+            {
+                _currentShortcut.Actions.Add(newAction);
+                CurrentShortcutChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        /// <summary>
+        /// Delete shortcut action at index
+        /// </summary>
+        public void DeleteShortcutAction(int actionIndex)
+        {
+            if (_currentShortcut == null || actionIndex < 0 || actionIndex >= _currentShortcut.Actions.Count)
+                return;
+
+            _currentShortcut.Actions.RemoveAt(actionIndex);
+            CurrentShortcutChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Duplicate shortcut action at index
+        /// </summary>
+        public void DuplicateShortcutAction(int actionIndex)
+        {
+            if (_currentShortcut == null || actionIndex < 0 || actionIndex >= _currentShortcut.Actions.Count)
+                return;
+
+            var originalAction = _currentShortcut.Actions[actionIndex];
+            var duplicateAction = new MacroAction
+            {
+                Type = originalAction.Type,
+                KeyCode = originalAction.KeyCode,
+                DelayMs = originalAction.DelayMs,
+                X = originalAction.X,
+                Y = originalAction.Y,
+                TimestampMs = originalAction.TimestampMs
+            };
+
+            _currentShortcut.Actions.Insert(actionIndex + 1, duplicateAction);
+            CurrentShortcutChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Update shortcut action at index
+        /// </summary>
+        public void UpdateShortcutAction(int actionIndex, string keyText, int delay, ActionType actionType, Guid? macroId = null)
+        {
+            if (_currentShortcut == null || actionIndex < 0 || actionIndex >= _currentShortcut.Actions.Count)
+                return;
+
+            var action = _currentShortcut.Actions[actionIndex];
+            action.DelayMs = delay;
+            action.Type = actionType;
+
+            // Update key (for keyboard actions) or MacroId (for macro actions)
+            if (actionType == ActionType.Macro)
+            {
+                action.MacroId = macroId;
+            }
+            else
+            {
+                action.MacroId = null;
+                if (!string.IsNullOrEmpty(keyText))
+                {
+                    try
+                    {
+                        Keys key = (Keys)Enum.Parse(typeof(Keys), keyText, true);
+                        action.KeyCode = (int)key;
+                    }
+                    catch
+                    {
+                        // Keep previous value if invalid
+                    }
+                }
+            }
+
+            CurrentShortcutChanged?.Invoke(this, EventArgs.Empty);
+        }
+
         #endregion
 
         #region Playback Control
@@ -372,7 +690,7 @@ namespace MacroManager
         /// <summary>
         /// Play current macro
         /// </summary>
-        public async Task PlayCurrentMacro(int repeatCount = 1)
+        public async Task PlayCurrentMacro(int repeatCount = 1, bool releaseModifiersFirst = false)
         {
             if (_currentMacro?.Actions.Count == 0)
                 return;
@@ -392,7 +710,7 @@ namespace MacroManager
             {
                 System.Diagnostics.Debug.WriteLine($"PlayCurrentMacro persist LastUsed failed: {ex.Message}");
             }
-            await _player.PlayAsync(_currentMacro, repeatCount);
+            await _player.PlayAsync(_currentMacro, repeatCount, releaseModifiersFirst);
         }
 
         /// <summary>
@@ -510,6 +828,12 @@ namespace MacroManager
         /// </summary>
         public string GetKeyDisplay(MacroAction action)
         {
+            if (action.Type == ActionType.Macro && action.MacroId.HasValue)
+            {
+                var macro = _settingsManager.LoadMacro(action.MacroId.Value);
+                return macro != null ? macro.Name : "Macro (no encontrado)";
+            }
+            
             if (action.Type == ActionType.KeyDown || action.Type == ActionType.KeyUp || action.Type == ActionType.KeyPress)
             {
                 return GetKeyName(action.KeyCode);
@@ -543,6 +867,7 @@ namespace MacroManager
                 ActionType.MouseRightUp => "🖱️  Right Release",
                 ActionType.MouseMove => "↔️  Mouse Move",
                 ActionType.Delay => "⏱️  Delay",
+                ActionType.Macro => "📜  Macro",
                 _ => "❓ Unknown"
             };
         }
@@ -593,11 +918,38 @@ namespace MacroManager
 
         private void OnActionRecorded(object sender, MacroAction action)
         {
-            if (_currentMacro != null)
+            // Solo agregar acción al macro o shortcut que está siendo grabado actualmente
+            // Usamos _isRecordingShortcut para determinar si estamos grabando un shortcut
+            // El problema es que necesitamos saber qué estamos grabando
+            // Solución: usar el nombre del shortcut/macro para detectar si es un recording
+            bool isRecordingMacro = _currentMacro != null && _currentMacro.Name.StartsWith("Recording_");
+            bool isRecordingShortcut = _currentShortcut != null && _currentShortcut.Name.StartsWith("Recording_");
+            
+            if (isRecordingMacro && !isRecordingShortcut)
             {
+                // Solo estamos grabando un macro
                 _currentMacro.Actions.Add(action);
                 CurrentMacroChanged?.Invoke(this, EventArgs.Empty);
             }
+            else if (isRecordingShortcut)
+            {
+                // Solo estamos grabando un shortcut
+                _currentShortcut.Actions.Add(action);
+                CurrentShortcutChanged?.Invoke(this, EventArgs.Empty);
+            }
+            else if (_currentMacro != null && !isRecordingShortcut)
+            {
+                // Hay un macro activo pero no estamos grabando un shortcut, agregar al macro
+                _currentMacro.Actions.Add(action);
+                CurrentMacroChanged?.Invoke(this, EventArgs.Empty);
+            }
+            else if (_currentShortcut != null && !isRecordingMacro)
+            {
+                // Hay un shortcut activo pero no estamos grabando un macro, agregar al shortcut
+                _currentShortcut.Actions.Add(action);
+                CurrentShortcutChanged?.Invoke(this, EventArgs.Empty);
+            }
+            
             ActionRecorded?.Invoke(this, action);
         }
 

@@ -68,5 +68,52 @@ namespace MacroManager.Services
         /// Obtiene la ruta del directorio de macros
         /// </summary>
         string GetMacrosDirectory();
+
+        /// <summary>
+        /// Guarda un shortcut en un archivo
+        /// </summary>
+        /// <param name="shortcut">El shortcut a guardar</param>
+        /// <returns>True si se guardó exitosamente</returns>
+        bool SaveShortcut(MacroConfig shortcut);
+
+        /// <summary>
+        /// Carga un shortcut desde un archivo
+        /// </summary>
+        /// <param name="shortcutId">ID del shortcut a cargar</param>
+        /// <returns>El shortcut cargado o null si no existe</returns>
+        MacroConfig LoadShortcut(Guid shortcutId);
+
+        /// <summary>
+        /// Carga todos los shortcuts guardados
+        /// </summary>
+        /// <returns>Lista de shortcuts</returns>
+        List<MacroConfig> LoadAllShortcuts();
+
+        /// <summary>
+        /// Elimina un shortcut
+        /// </summary>
+        /// <param name="shortcutId">ID del shortcut a eliminar</param>
+        /// <returns>True si se eliminó correctamente</returns>
+        bool DeleteShortcut(Guid shortcutId);
+
+        /// <summary>
+        /// Exporta un shortcut a un archivo específico
+        /// </summary>
+        /// <param name="shortcut">Shortcut a exportar</param>
+        /// <param name="filePath">Ruta del archivo destino</param>
+        /// <returns>True si se exportó correctamente</returns>
+        bool ExportShortcut(MacroConfig shortcut, string filePath);
+
+        /// <summary>
+        /// Importa un shortcut desde un archivo
+        /// </summary>
+        /// <param name="filePath">Ruta del archivo a importar</param>
+        /// <returns>El shortcut importado o null si falla</returns>
+        MacroConfig ImportShortcut(string filePath);
+
+        /// <summary>
+        /// Obtiene la ruta del directorio de shortcuts
+        /// </summary>
+        string GetShortcutsDirectory();
     }
 }

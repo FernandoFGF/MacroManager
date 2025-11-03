@@ -47,13 +47,19 @@ namespace MacroManager.Services
         public event EventHandler<int> PlaybackProgress;
 
         public Func<bool> IsTargetActiveFunc { get; set; }
+        
+        /// <summary>
+        /// Function to load a macro by ID (for Macro action type)
+        /// </summary>
+        public Func<Guid, MacroConfig> LoadMacroFunc { get; set; }
 
         /// <summary>
         /// Plays a macro asynchronously
         /// </summary>
         /// <param name="macro">The macro configuration to play</param>
         /// <param name="repeatCount">Number of repetitions (1 = once, 0 = infinite)</param>
-        public async Task PlayAsync(MacroConfig macro, int repeatCount = 1)
+        /// <param name="releaseModifiersFirst">If true, release all modifier keys before playing (useful for shortcuts)</param>
+        public async Task PlayAsync(MacroConfig macro, int repeatCount = 1, bool releaseModifiersFirst = false)
         {
             if (_isPlaying || macro == null || macro.Actions.Count == 0)
                 return;
@@ -76,7 +82,7 @@ namespace MacroManager.Services
                         if (_cancellationTokenSource.Token.IsCancellationRequested)
                             break;
 
-                        await PlayMacroOnceAsync(macro.Actions, _cancellationTokenSource.Token).ConfigureAwait(false);
+                        await PlayMacroOnceAsync(macro.Actions, _cancellationTokenSource.Token, releaseModifiersFirst && i == 0).ConfigureAwait(false);
 
                         PlaybackProgress?.Invoke(this, i + 1);
 
@@ -110,8 +116,14 @@ namespace MacroManager.Services
         /// <summary>
         /// Plays a sequence of actions once
         /// </summary>
-        private async Task PlayMacroOnceAsync(List<MacroAction> actions, CancellationToken cancellationToken)
+        private async Task PlayMacroOnceAsync(List<MacroAction> actions, CancellationToken cancellationToken, bool releaseModifiersFirst = false)
         {
+            // If this is a shortcut execution, release all modifiers first to prevent interference
+            if (releaseModifiersFirst)
+            {
+                ReleaseAllModifiers();
+            }
+
             foreach (var action in actions)
             {
                 if (cancellationToken.IsCancellationRequested)
@@ -271,6 +283,19 @@ namespace MacroManager.Services
                 case ActionType.Delay:
                     await DelayRespectingPause(action.DelayMs, token);
                     break;
+
+                case ActionType.Macro:
+                    // Ejecutar el macro referenciado
+                    if (action.MacroId.HasValue && LoadMacroFunc != null)
+                    {
+                        var macro = LoadMacroFunc(action.MacroId.Value);
+                        if (macro != null && macro.Actions.Count > 0)
+                        {
+                            // Ejecutar el macro una vez (sin loop)
+                            await PlayMacroOnceAsync(macro.Actions, token).ConfigureAwait(false);
+                        }
+                    }
+                    break;
             }
         }
 
@@ -399,6 +424,109 @@ namespace MacroManager.Services
         {
             SetCursorPos(x, y);
         }
+
+        /// <summary>
+        /// Releases all modifier keys (Ctrl, Alt, Shift, Win) to prevent interference with key actions
+        /// </summary>
+        private void ReleaseAllModifiers()
+        {
+            // Virtual key codes for modifier keys
+            const ushort VK_LCONTROL = 0xA2;
+            const ushort VK_RCONTROL = 0xA3;
+            const ushort VK_LMENU = 0xA4;
+            const ushort VK_RMENU = 0xA5;
+            const ushort VK_LSHIFT = 0xA0;
+            const ushort VK_RSHIFT = 0xA1;
+            const ushort VK_LWIN = 0x5B;
+            const ushort VK_RWIN = 0x5C;
+
+            // Check if modifiers are pressed and release them
+            INPUT[] inputs = new INPUT[6]; // Max possible: LControl, RControl, LAlt, RAlt, LShift, RShift
+            int inputCount = 0;
+
+            // Release Control keys
+            if ((GetAsyncKeyState(VK_LCONTROL) & 0x8000) != 0)
+            {
+                inputs[inputCount].type = INPUT_KEYBOARD;
+                inputs[inputCount].u.ki.wVk = VK_LCONTROL;
+                inputs[inputCount].u.ki.wScan = 0;
+                inputs[inputCount].u.ki.dwFlags = KEYEVENTF_KEYUP;
+                inputCount++;
+            }
+            if ((GetAsyncKeyState(VK_RCONTROL) & 0x8000) != 0)
+            {
+                inputs[inputCount].type = INPUT_KEYBOARD;
+                inputs[inputCount].u.ki.wVk = VK_RCONTROL;
+                inputs[inputCount].u.ki.wScan = 0;
+                inputs[inputCount].u.ki.dwFlags = KEYEVENTF_KEYUP;
+                inputCount++;
+            }
+
+            // Release Alt keys
+            if ((GetAsyncKeyState(VK_LMENU) & 0x8000) != 0)
+            {
+                inputs[inputCount].type = INPUT_KEYBOARD;
+                inputs[inputCount].u.ki.wVk = VK_LMENU;
+                inputs[inputCount].u.ki.wScan = 0;
+                inputs[inputCount].u.ki.dwFlags = KEYEVENTF_KEYUP;
+                inputCount++;
+            }
+            if ((GetAsyncKeyState(VK_RMENU) & 0x8000) != 0)
+            {
+                inputs[inputCount].type = INPUT_KEYBOARD;
+                inputs[inputCount].u.ki.wVk = VK_RMENU;
+                inputs[inputCount].u.ki.wScan = 0;
+                inputs[inputCount].u.ki.dwFlags = KEYEVENTF_KEYUP;
+                inputCount++;
+            }
+
+            // Release Shift keys
+            if ((GetAsyncKeyState(VK_LSHIFT) & 0x8000) != 0)
+            {
+                inputs[inputCount].type = INPUT_KEYBOARD;
+                inputs[inputCount].u.ki.wVk = VK_LSHIFT;
+                inputs[inputCount].u.ki.wScan = 0;
+                inputs[inputCount].u.ki.dwFlags = KEYEVENTF_KEYUP;
+                inputCount++;
+            }
+            if ((GetAsyncKeyState(VK_RSHIFT) & 0x8000) != 0)
+            {
+                inputs[inputCount].type = INPUT_KEYBOARD;
+                inputs[inputCount].u.ki.wVk = VK_RSHIFT;
+                inputs[inputCount].u.ki.wScan = 0;
+                inputs[inputCount].u.ki.dwFlags = KEYEVENTF_KEYUP;
+                inputCount++;
+            }
+
+            // Release Win keys
+            if ((GetAsyncKeyState(VK_LWIN) & 0x8000) != 0)
+            {
+                inputs[inputCount].type = INPUT_KEYBOARD;
+                inputs[inputCount].u.ki.wVk = VK_LWIN;
+                inputs[inputCount].u.ki.wScan = 0;
+                inputs[inputCount].u.ki.dwFlags = KEYEVENTF_KEYUP;
+                inputCount++;
+            }
+            if ((GetAsyncKeyState(VK_RWIN) & 0x8000) != 0)
+            {
+                inputs[inputCount].type = INPUT_KEYBOARD;
+                inputs[inputCount].u.ki.wVk = VK_RWIN;
+                inputs[inputCount].u.ki.wScan = 0;
+                inputs[inputCount].u.ki.dwFlags = KEYEVENTF_KEYUP;
+                inputCount++;
+            }
+
+            if (inputCount > 0)
+            {
+                // Send all key up events in a single batch
+                SendInput((uint)inputCount, inputs, Marshal.SizeOf(typeof(INPUT)));
+                // Small delay to ensure modifiers are fully released
+                System.Threading.Thread.Sleep(10);
+            }
+        }
+
+        [DllImport("user32.dll")]
+        private static extern short GetAsyncKeyState(int vKey);
 
         #endregion
     }

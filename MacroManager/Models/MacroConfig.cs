@@ -77,7 +77,7 @@ namespace MacroManager.Models
     public class MacroAction
     {
         /// <summary>
-        /// Action type (Click, KeyPress, KeyDown, KeyUp, MouseMove, Delay)
+        /// Action type (Click, KeyPress, KeyDown, KeyUp, MouseMove, Delay, Macro)
         /// </summary>
         public ActionType Type { get; set; }
 
@@ -105,6 +105,11 @@ namespace MacroManager.Models
         /// Relative timestamp from the start of recording
         /// </summary>
         public long TimestampMs { get; set; }
+
+        /// <summary>
+        /// Macro ID reference (when Type is Macro)
+        /// </summary>
+        public Guid? MacroId { get; set; }
     }
 
     /// <summary>
@@ -122,6 +127,7 @@ namespace MacroManager.Models
         MouseRightUp,   // Right button released
         MouseRightClick,// Right click (down+up)
         MouseMove,      // Mouse movement
-        Delay           // Pause/wait
+        Delay,          // Pause/wait
+        Macro           // Execute another macro
     }
 }

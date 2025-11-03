@@ -33,6 +33,28 @@ namespace MacroManager
         private TextBox _txtDelay;
         private ComboBox _cmbActionType;
         
+        // Shortcut UI Controls
+        private Panel _shortcutActionsPanel;
+        // private Button _btnPlayShortcut; // No usado - solo se muestra el campo shortcut
+        private Button _btnRecordShortcut;
+        private Button _btnStopRecordShortcut;
+        // private NumericUpDown _numLoopCountShortcut; // No usado - solo se muestra el campo shortcut
+        // private ComboBox _cmbTargetWindowShortcut; // Para funcionalidad futura de ventana objetivo
+        private TreeView _shortcutTreeView;
+        
+        // Shortcut Rule editor controls
+        private TextBox _txtKeyShortcut;
+        private TextBox _txtDelayShortcut;
+        private TextBox _txtHotkeyShortcut; // Campo para el hotkey del shortcut
+        private ComboBox _cmbActionTypeShortcut;
+        private ComboBox _cmbMacroShortcut; // Selector de macro cuando ActionType es Macro
+        private Panel _zonePanelShortcut; // Panel de Zone para acciones de ratón
+        private Button _btnZoneShortcut; // Botón Zone
+        private Label _lblCoordsShortcut; // Label de coordenadas
+        
+        // Shortcut playback panel controls
+        private CheckBox _chkEnableShortcut; // Checkbox Enable para shortcuts
+        
         // Unsaved changes state and UI
         private bool _hasUnsavedChanges = false;
         private Label _unsavedCenterIcon;
@@ -47,8 +69,24 @@ namespace MacroManager
         private int _pendingClickIndex = -1;
         private Point _pendingClickStartPoint;
         
+        // Selected shortcut action tracking (multi-selección)
+        private int _selectedShortcutActionIndex = -1;
+        private List<int> _selectedShortcutActionIndices = new List<int>();
+        // Campos para funcionalidad futura de arrastre y selección múltiple:
+        // private bool _isDraggingShortcutSelection = false;
+        // private Point _dragStartPointShortcut;
+        // private Rectangle _dragSelectionRectShortcut = Rectangle.Empty;
+        // private bool _pendingClickShortcut = false;
+        // private int _pendingClickIndexShortcut = -1;
+        // private Point _pendingClickStartPointShortcut;
+        
         // Editor event suppression (to avoid false dirty when cargando datos)
         private bool _suppressEditorEvents = false;
+        private bool _suppressShortcutEditorEvents = false;
+        
+        // Hotkey handlers para cada pestaña
+        private EventHandler _macroHotkeyHandler;
+        private EventHandler _shortcutHotkeyHandler;
 
         /// <summary>
         /// Constructor
